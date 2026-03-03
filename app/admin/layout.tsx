@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { href: "/admin/contacts", label: "Contacts" },
   { href: "/admin/roles", label: "Roles" },
   { href: "/admin/candidates", label: "Candidates" },
+  { href: "/admin/pipelines", label: "Pipelines" },
 ];
 
 const ADD_OPTIONS = [

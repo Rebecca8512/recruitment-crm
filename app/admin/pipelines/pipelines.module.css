@@ -1,0 +1,64 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.header {
+  margin-bottom: 0.2rem;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.11em;
+  color: #0a5254;
+}
+
+.title {
+  margin: 0.25rem 0 0;
+  font-size: clamp(1.7rem, 3vw, 2.2rem);
+  color: #00171b;
+}
+
+.switchCard,
+.placeholderCard {
+  border: 1px solid rgba(0, 15, 20, 0.1);
+  border-radius: 1rem;
+  padding: 1.1rem;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 18px 30px rgba(0, 15, 20, 0.08);
+}
+
+.switchRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.switchButton {
+  border: 1px solid rgba(0, 15, 20, 0.2);
+  border-radius: 0.58rem;
+  background: #ffffff;
+  color: #001418;
+  padding: 0.46rem 0.68rem;
+  text-decoration: none;
+}
+
+.switchButtonActive {
+  border-color: #0a9396;
+  background: #c5e7dc;
+  color: #0a5254;
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: 1.15rem;
+  color: #00171b;
+}
+
+.placeholderText {
+  margin: 0.7rem 0 0;
+  color: #2a3d41;
+}
