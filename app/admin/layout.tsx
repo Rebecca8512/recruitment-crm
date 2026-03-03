@@ -37,7 +37,7 @@ const ADD_OPTIONS = [
     id: "candidate",
     label: "Candidate",
     description: "Capture a candidate profile, with or without an active role.",
-    isReady: false,
+    isReady: true,
   },
 ] as const;
 
@@ -47,6 +47,7 @@ type AddOptionId = (typeof ADD_OPTIONS)[number]["id"];
 const ADD_ROUTES: Partial<Record<AddOptionId, string>> = {
   client: "/admin/clients/new",
   contact: "/admin/contacts/new",
+  candidate: "/admin/candidates/new",
 };
 
 export default function AdminLayout({
@@ -262,11 +263,10 @@ export default function AdminLayout({
                       form
                     </h4>
                     <p className={styles.modalPanelText}>
-                      This form will be added next. The Client form is available
-                      now.
+                      This form will be added next.
                     </p>
                     <div className={styles.modalPlaceholder}>
-                      Choose Client to open the new dedicated creation page.
+                      Choose an available record type above to open its page.
                     </div>
                   </div>
                 ) : (
