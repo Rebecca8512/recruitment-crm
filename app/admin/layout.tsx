@@ -14,7 +14,31 @@ const NAV_ITEMS = [
   { href: "/admin/candidates", label: "Candidates" },
 ];
 
+const ADD_OPTIONS = [
+  {
+    id: "client",
+    label: "Client",
+    description: "Create a business account, including status and notes.",
+  },
+  {
+    id: "contact",
+    label: "Contact",
+    description: "Add a person and link employment to a client record.",
+  },
+  {
+    id: "role",
+    label: "Role",
+    description: "Open a new job requirement linked to a client.",
+  },
+  {
+    id: "candidate",
+    label: "Candidate",
+    description: "Capture a candidate profile, with or without an active role.",
+  },
+] as const;
+
 type ProfileRole = "admin" | "staff";
+type AddOptionId = (typeof ADD_OPTIONS)[number]["id"];
 
 export default function AdminLayout({
   children,
@@ -26,6 +50,8 @@ export default function AdminLayout({
   const isLoginRoute = pathname === "/admin";
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [userEmail, setUserEmail] = useState("");
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [activeAddOption, setActiveAddOption] = useState<AddOptionId>("client");
 
   useEffect(() => {
     if (isLoginRoute) {
@@ -83,6 +109,25 @@ export default function AdminLayout({
     router.replace("/admin");
   };
 
+  const closeAddModal = () => {
+    setIsAddModalOpen(false);
+  };
+
+  useEffect(() => {
+    if (!isAddModalOpen) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closeAddModal();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [isAddModalOpen]);
+
   if (isLoginRoute) {
     return <>{children}</>;
   }
@@ -126,21 +171,81 @@ export default function AdminLayout({
 
       <div className={styles.contentArea}>
         <header className={styles.topBar}>
-          <a
-            href="https://whitmorerecruitment.co.uk"
-            target="_blank"
-            rel="noreferrer"
-            className={styles.websiteLink}
-          >
-            Visit main website
-          </a>
-          <button className={styles.signOutButton} onClick={handleSignOut}>
-            Sign out
-          </button>
+          <div className={styles.topActions}>
+            <button
+              className={styles.actionButton}
+              onClick={() => setIsAddModalOpen(true)}
+            >
+              + Add
+            </button>
+            <button className={styles.actionButton} onClick={handleSignOut}>
+              Sign out
+            </button>
+          </div>
         </header>
 
         <section className={styles.pageContent}>{children}</section>
       </div>
+
+      {isAddModalOpen ? (
+        <div
+          className={styles.modalOverlay}
+          role="presentation"
+          onClick={closeAddModal}
+        >
+          <div
+            className={styles.modalCard}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Add CRM record"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <header className={styles.modalHeader}>
+              <div>
+                <p className={styles.modalEyebrow}>Create Record</p>
+                <h3 className={styles.modalTitle}>What would you like to add?</h3>
+              </div>
+              <button className={styles.modalCloseButton} onClick={closeAddModal}>
+                Close
+              </button>
+            </header>
+
+            <div className={styles.modalBody}>
+              <aside className={styles.modalOptionList}>
+                {ADD_OPTIONS.map((option) => {
+                  const isActive = option.id === activeAddOption;
+                  return (
+                    <button
+                      key={option.id}
+                      className={`${styles.modalOptionButton} ${isActive ? styles.modalOptionButtonActive : ""}`}
+                      onClick={() => setActiveAddOption(option.id)}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </aside>
+
+              <section className={styles.modalOptionPanel}>
+                {ADD_OPTIONS.filter((option) => option.id === activeAddOption).map(
+                  (option) => (
+                    <div key={option.id}>
+                      <h4 className={styles.modalPanelTitle}>
+                        Add {option.label}
+                      </h4>
+                      <p className={styles.modalPanelText}>{option.description}</p>
+                      <div className={styles.modalPlaceholder}>
+                        Form for {option.label.toLowerCase()} will be built here
+                        next.
+                      </div>
+                    </div>
+                  ),
+                )}
+              </section>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

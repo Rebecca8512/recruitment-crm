@@ -76,32 +76,28 @@
 
 .topBar {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   gap: 0.75rem;
   padding: 1rem 1.4rem;
 }
 
-.websiteLink {
-  color: #0a5254;
-  text-decoration: underline;
-  text-underline-offset: 0.15rem;
+.topActions {
+  display: flex;
+  gap: 0.6rem;
 }
 
-.websiteLink:hover {
-  color: #063f40;
-}
-
-.signOutButton {
+.actionButton {
   border: 1px solid rgba(0, 15, 20, 0.2);
   border-radius: 0.62rem;
   background: #ffffff;
   color: #001418;
   padding: 0.58rem 0.86rem;
   cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
 }
 
-.signOutButton:hover {
+.actionButton:hover {
   border-color: #0a9396;
   color: #0a5254;
 }
@@ -119,6 +115,123 @@
 
 .loadingText {
   color: #2d3d42;
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(0, 15, 20, 0.45);
+  backdrop-filter: blur(2px);
+}
+
+.modalCard {
+  width: min(760px, 100%);
+  border-radius: 1rem;
+  border: 1px solid rgba(0, 15, 20, 0.12);
+  background: #fffefb;
+  box-shadow: 0 32px 48px rgba(0, 15, 20, 0.25);
+  overflow: hidden;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem 1.1rem;
+  border-bottom: 1px solid rgba(0, 15, 20, 0.1);
+}
+
+.modalEyebrow {
+  margin: 0;
+  font-size: 0.73rem;
+  text-transform: uppercase;
+  letter-spacing: 0.11em;
+  color: #0a5254;
+}
+
+.modalTitle {
+  margin: 0.25rem 0 0;
+  font-size: 1.35rem;
+  color: #00171b;
+}
+
+.modalCloseButton {
+  border: 1px solid rgba(0, 15, 20, 0.2);
+  border-radius: 0.62rem;
+  background: #ffffff;
+  color: #001418;
+  padding: 0.48rem 0.75rem;
+  cursor: pointer;
+}
+
+.modalCloseButton:hover {
+  border-color: #0a9396;
+  color: #0a5254;
+}
+
+.modalBody {
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  gap: 0.8rem;
+  padding: 1rem 1.1rem 1.1rem;
+}
+
+.modalOptionList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.modalOptionButton {
+  border: 1px solid rgba(0, 15, 20, 0.15);
+  border-radius: 0.58rem;
+  background: #ffffff;
+  color: #12292e;
+  padding: 0.58rem 0.65rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.modalOptionButton:hover {
+  border-color: #0a9396;
+}
+
+.modalOptionButtonActive {
+  background: rgba(10, 147, 150, 0.12);
+  border-color: #0a9396;
+  color: #0a5254;
+}
+
+.modalOptionPanel {
+  border: 1px solid rgba(0, 15, 20, 0.1);
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 0.9rem;
+}
+
+.modalPanelTitle {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #00171b;
+}
+
+.modalPanelText {
+  margin: 0.55rem 0 0;
+  color: #2d3f43;
+}
+
+.modalPlaceholder {
+  margin-top: 0.8rem;
+  border-radius: 0.65rem;
+  border: 1px dashed rgba(0, 15, 20, 0.3);
+  padding: 0.85rem;
+  color: #1f353a;
+  background: #fffdf8;
 }
 
 @media (max-width: 960px) {
@@ -148,5 +261,18 @@
   .topBar {
     padding-top: 0.8rem;
     padding-bottom: 0.8rem;
+  }
+
+  .modalBody {
+    grid-template-columns: 1fr;
+  }
+
+  .modalOptionList {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .modalOptionButton {
+    width: calc(50% - 0.25rem);
   }
 }
