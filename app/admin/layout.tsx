@@ -31,7 +31,7 @@ const ADD_OPTIONS = [
     id: "role",
     label: "Role",
     description: "Open a new job requirement linked to a client.",
-    isReady: false,
+    isReady: true,
   },
   {
     id: "candidate",
@@ -47,6 +47,7 @@ type AddOptionId = (typeof ADD_OPTIONS)[number]["id"];
 const ADD_ROUTES: Partial<Record<AddOptionId, string>> = {
   client: "/admin/clients/new",
   contact: "/admin/contacts/new",
+  role: "/admin/roles/new",
   candidate: "/admin/candidates/new",
 };
 

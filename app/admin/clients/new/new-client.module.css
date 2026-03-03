@@ -120,6 +120,83 @@
   height: 1rem;
 }
 
+.checkboxRow {
+  margin-top: 0.8rem;
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.sectionHeaderInline {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.inlineTextButton {
+  border: 0;
+  background: transparent;
+  color: #0a5254;
+  text-decoration: underline;
+  text-underline-offset: 0.15rem;
+  padding: 0;
+  cursor: pointer;
+}
+
+.inlineTextButton:hover {
+  color: #063f40;
+}
+
+.warningMessage {
+  margin: 0.75rem 0 0;
+  border: 1px solid #ef9d4f;
+  border-radius: 0.65rem;
+  padding: 0.58rem 0.72rem;
+  color: #7f3d00;
+  background: #fff8ef;
+}
+
+.richEditor {
+  border: 1px solid #c3ccd0;
+  border-radius: 0.7rem;
+  background: #fff;
+  overflow: hidden;
+}
+
+.richToolbar {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.45rem 0.5rem;
+  border-bottom: 1px solid #dde3e6;
+  background: #f8fbfc;
+}
+
+.richToolbar button {
+  border: 1px solid rgba(0, 15, 20, 0.2);
+  border-radius: 0.45rem;
+  background: #fff;
+  color: #102429;
+  padding: 0.28rem 0.5rem;
+  cursor: pointer;
+}
+
+.richToolbar button:hover {
+  border-color: #0a9396;
+  background: #c5e7dc;
+}
+
+.richSurface {
+  min-height: 170px;
+  padding: 0.7rem;
+  color: #102429;
+}
+
+.richSurface:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 2px rgba(8, 127, 128, 0.2);
+}
+
 .fullWidthField {
   margin-top: 0.8rem;
 }

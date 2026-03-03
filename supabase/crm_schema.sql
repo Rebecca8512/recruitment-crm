@@ -173,8 +173,33 @@ create table if not exists public.contact_employments (
 create table if not exists public.roles (
   id uuid primary key default gen_random_uuid(),
   client_id uuid references public.clients(id) on delete set null,
+  contact_id uuid references public.contacts(id) on delete set null,
   title text not null,
+  owner_user_id uuid references auth.users(id),
+  target_date date,
   status_code text not null default 'intake' references public.role_statuses(code),
+  industry text,
+  job_type text not null default 'full_time',
+  salary_text text,
+  work_experience text not null default 'none',
+  notes text,
+  address_line_1 text,
+  address_line_2 text,
+  city text,
+  county text,
+  postcode text,
+  address_text text,
+  is_remote boolean not null default false,
+  is_hybrid boolean not null default false,
+  number_of_positions integer,
+  expected_revenue_per_position text,
+  total_expected_revenue text,
+  actual_revenue text,
+  job_description_html text,
+  requirements_html text,
+  benefits_html text,
+  listing_job_boards text,
+  listing_social_media text,
   location text,
   salary_min numeric(12, 2),
   salary_max numeric(12, 2),
@@ -188,7 +213,27 @@ create table if not exists public.roles (
   created_by uuid references auth.users(id),
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now()),
-  check (salary_min is null or salary_max is null or salary_max >= salary_min)
+  check (salary_min is null or salary_max is null or salary_max >= salary_min),
+  check (
+    job_type in (
+      'none',
+      'full_time',
+      'part_time',
+      'temporary',
+      'contract',
+      'seasonal',
+      'freelance'
+    )
+  ),
+  check (
+    work_experience in (
+      'none',
+      '0_1_year',
+      '1_3_years',
+      '4_5_years',
+      '5_plus_years'
+    )
+  )
 );
 
 create table if not exists public.candidates (
@@ -275,6 +320,8 @@ on public.contact_employments (contact_id)
 where is_primary and end_date is null;
 
 create index if not exists roles_client_id_idx on public.roles (client_id);
+create index if not exists roles_contact_id_idx on public.roles (contact_id);
+create index if not exists roles_owner_user_id_idx on public.roles (owner_user_id);
 create index if not exists clients_parent_client_id_idx on public.clients (parent_client_id);
 create index if not exists clients_account_manager_id_idx on public.clients (account_manager_id);
 create index if not exists contacts_owner_user_id_idx on public.contacts (owner_user_id);
