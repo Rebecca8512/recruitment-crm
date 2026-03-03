@@ -221,6 +221,34 @@
   color: #00171b;
 }
 
+.roleApplicationList {
+  margin-top: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.roleApplicationCard {
+  border: 1px solid rgba(0, 15, 20, 0.12);
+  border-radius: 0.75rem;
+  background: #ffffff;
+  padding: 0.85rem;
+}
+
+.roleApplicationHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.paperworkRow {
+  margin-top: 0.8rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+}
+
 .attachmentText {
   margin: 0.45rem 0 0;
   color: #2d3f43;

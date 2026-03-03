@@ -849,44 +849,164 @@ export default function NewCandidatePage() {
         </section>
 
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Attachment Information</h2>
-          <div className={styles.attachmentGrid}>
-            <div className={styles.attachmentCard}>
-              <p className={styles.attachmentTitle}>Resume</p>
-              <button type="button" className={styles.disabledButton} disabled>
-                Upload coming soon
-              </button>
-            </div>
-            <div className={styles.attachmentCard}>
-              <p className={styles.attachmentTitle}>Formatted resume</p>
-              <button type="button" className={styles.disabledButton} disabled>
-                Upload coming soon
-              </button>
-            </div>
-            <div className={styles.attachmentCard}>
-              <p className={styles.attachmentTitle}>Cover Letter</p>
-              <button type="button" className={styles.disabledButton} disabled>
-                Upload coming soon
-              </button>
-            </div>
-            <div className={styles.attachmentCard}>
-              <p className={styles.attachmentTitle}>Others</p>
-              <button type="button" className={styles.disabledButton} disabled>
-                Upload coming soon
-              </button>
-            </div>
-            <div className={styles.attachmentCard}>
-              <p className={styles.attachmentTitle}>Offer</p>
-              <button type="button" className={styles.disabledButton} disabled>
-                Upload coming soon
-              </button>
-            </div>
-            <div className={styles.attachmentCard}>
-              <p className={styles.attachmentTitle}>Contracts</p>
-              <button type="button" className={styles.disabledButton} disabled>
-                Upload coming soon
-              </button>
-            </div>
+          <div className={styles.sectionHeaderInline}>
+            <h2 className={styles.sectionTitle}>Role Applications</h2>
+            <button
+              type="button"
+              className={styles.inlineTextButton}
+              onClick={addRoleApplicationRow}
+            >
+              + Add another role
+            </button>
+          </div>
+          <div className={styles.roleApplicationList}>
+            {roleApplications.map((row, index) => (
+              <div key={row.rowId} className={styles.roleApplicationCard}>
+                <div className={styles.roleApplicationHeader}>
+                  <p className={styles.attachmentTitle}>Role {index + 1}</p>
+                  <button
+                    type="button"
+                    className={styles.subtleDeleteLink}
+                    onClick={() => removeRoleApplicationRow(row.rowId)}
+                  >
+                    Remove
+                  </button>
+                </div>
+                <div className={styles.grid}>
+                  <label className={styles.field}>
+                    <span className={styles.label}>Role</span>
+                    <select
+                      value={row.roleId}
+                      onChange={(event) =>
+                        updateRoleApplicationRow(row.rowId, (current) => ({
+                          ...current,
+                          roleId: event.target.value,
+                        }))
+                      }
+                    >
+                      <option value="">Select role</option>
+                      {roleOptions.map((role) => (
+                        <option key={role.id} value={role.id}>
+                          {role.title}
+                          {role.client_id
+                            ? ` - ${clientNameById[role.client_id] ?? "Client"}`
+                            : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className={styles.field}>
+                    <span className={styles.label}>Folder URL</span>
+                    <input
+                      type="url"
+                      value={row.folderUrl}
+                      onChange={(event) =>
+                        updateRoleApplicationRow(row.rowId, (current) => ({
+                          ...current,
+                          folderUrl: event.target.value,
+                        }))
+                      }
+                      placeholder="https://"
+                    />
+                  </label>
+                </div>
+
+                <div className={styles.paperworkRow}>
+                  <label className={styles.checkboxField}>
+                    <input
+                      type="checkbox"
+                      checked={row.hasResume}
+                      onChange={(event) =>
+                        updateRoleApplicationRow(row.rowId, (current) => ({
+                          ...current,
+                          hasResume: event.target.checked,
+                        }))
+                      }
+                    />
+                    <span>Resume</span>
+                  </label>
+                  <label className={styles.checkboxField}>
+                    <input
+                      type="checkbox"
+                      checked={row.hasFormattedResume}
+                      onChange={(event) =>
+                        updateRoleApplicationRow(row.rowId, (current) => ({
+                          ...current,
+                          hasFormattedResume: event.target.checked,
+                        }))
+                      }
+                    />
+                    <span>Formatted resume</span>
+                  </label>
+                  <label className={styles.checkboxField}>
+                    <input
+                      type="checkbox"
+                      checked={row.hasCoverLetter}
+                      onChange={(event) =>
+                        updateRoleApplicationRow(row.rowId, (current) => ({
+                          ...current,
+                          hasCoverLetter: event.target.checked,
+                        }))
+                      }
+                    />
+                    <span>Cover letter</span>
+                  </label>
+                  <label className={styles.checkboxField}>
+                    <input
+                      type="checkbox"
+                      checked={row.hasOffer}
+                      onChange={(event) =>
+                        updateRoleApplicationRow(row.rowId, (current) => ({
+                          ...current,
+                          hasOffer: event.target.checked,
+                        }))
+                      }
+                    />
+                    <span>Offer</span>
+                  </label>
+                  <label className={styles.checkboxField}>
+                    <input
+                      type="checkbox"
+                      checked={row.hasContract}
+                      onChange={(event) =>
+                        updateRoleApplicationRow(row.rowId, (current) => ({
+                          ...current,
+                          hasContract: event.target.checked,
+                        }))
+                      }
+                    />
+                    <span>Contract</span>
+                  </label>
+                  <label className={styles.checkboxField}>
+                    <input
+                      type="checkbox"
+                      checked={row.hasOther}
+                      onChange={(event) =>
+                        updateRoleApplicationRow(row.rowId, (current) => ({
+                          ...current,
+                          hasOther: event.target.checked,
+                        }))
+                      }
+                    />
+                    <span>Other</span>
+                  </label>
+                </div>
+
+                <label className={`${styles.field} ${styles.fullWidthField}`}>
+                  <span className={styles.label}>Other note</span>
+                  <textarea
+                    rows={3}
+                    value={row.otherNote}
+                    onChange={(event) =>
+                      updateRoleApplicationRow(row.rowId, (current) => ({
+                        ...current,
+                        otherNote: event.target.value,
+                      }))
+                    }
+                  />
+                </label>
+              </div>
+            ))}
           </div>
         </section>
 

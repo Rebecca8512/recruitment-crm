@@ -300,6 +300,23 @@ create table if not exists public.applications (
   unique (role_id, candidate_id)
 );
 
+create table if not exists public.application_files (
+  id uuid primary key default gen_random_uuid(),
+  application_id uuid not null references public.applications(id) on delete cascade,
+  has_resume boolean not null default false,
+  has_formatted_resume boolean not null default false,
+  has_cover_letter boolean not null default false,
+  has_offer boolean not null default false,
+  has_contract boolean not null default false,
+  has_other boolean not null default false,
+  other_note text,
+  folder_url text,
+  created_by uuid references auth.users(id),
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now()),
+  unique (application_id)
+);
+
 create table if not exists public.candidate_communication_notes (
   id uuid primary key default gen_random_uuid(),
   candidate_id uuid not null references public.candidates(id) on delete cascade,
@@ -343,6 +360,7 @@ create index if not exists candidates_owner_user_id_idx on public.candidates (ow
 create index if not exists candidates_current_employer_client_id_idx on public.candidates (current_employer_client_id);
 create index if not exists applications_role_id_idx on public.applications (role_id);
 create index if not exists applications_candidate_id_idx on public.applications (candidate_id);
+create index if not exists application_files_application_id_idx on public.application_files (application_id);
 create index if not exists candidate_communication_notes_candidate_id_idx on public.candidate_communication_notes (candidate_id);
 create index if not exists candidate_communication_notes_role_id_idx on public.candidate_communication_notes (role_id);
 create index if not exists candidate_communication_notes_created_at_idx on public.candidate_communication_notes (created_at desc);
@@ -403,6 +421,12 @@ before update on public.applications
 for each row
 execute function public.set_updated_at();
 
+drop trigger if exists trg_application_files_updated_at on public.application_files;
+create trigger trg_application_files_updated_at
+before update on public.application_files
+for each row
+execute function public.set_updated_at();
+
 drop trigger if exists trg_candidate_communication_notes_updated_at on public.candidate_communication_notes;
 create trigger trg_candidate_communication_notes_updated_at
 before update on public.candidate_communication_notes
@@ -418,6 +442,7 @@ alter table public.contact_employments enable row level security;
 alter table public.roles enable row level security;
 alter table public.candidates enable row level security;
 alter table public.applications enable row level security;
+alter table public.application_files enable row level security;
 alter table public.candidate_communication_notes enable row level security;
 
 grant select, insert, update, delete on table public.client_statuses to authenticated;
@@ -429,6 +454,7 @@ grant select, insert, update, delete on table public.contact_employments to auth
 grant select, insert, update, delete on table public.roles to authenticated;
 grant select, insert, update, delete on table public.candidates to authenticated;
 grant select, insert, update, delete on table public.applications to authenticated;
+grant select, insert, update, delete on table public.application_files to authenticated;
 grant select, insert, update, delete on table public.candidate_communication_notes to authenticated;
 
 drop policy if exists "status_select_crm_users" on public.client_statuses;
@@ -519,6 +545,14 @@ with check (public.can_access_crm());
 drop policy if exists "applications_crm_access" on public.applications;
 create policy "applications_crm_access"
 on public.applications
+for all
+to authenticated
+using (public.can_access_crm())
+with check (public.can_access_crm());
+
+drop policy if exists "application_files_crm_access" on public.application_files;
+create policy "application_files_crm_access"
+on public.application_files
 for all
 to authenticated
 using (public.can_access_crm())

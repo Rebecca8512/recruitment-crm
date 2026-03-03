@@ -494,6 +494,69 @@
   white-space: pre-wrap;
 }
 
+.fileRoleList {
+  margin-top: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.fileRoleCard {
+  border: 1px solid rgba(0, 15, 20, 0.1);
+  border-radius: 0.75rem;
+  background: #ffffff;
+  padding: 0.8rem;
+}
+
+.fileRoleHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.8rem;
+}
+
+.fileRoleTitle {
+  margin: 0;
+  font-weight: 600;
+  color: #0f262b;
+}
+
+.fileRoleMeta {
+  margin: 0.3rem 0 0;
+  font-size: 0.82rem;
+  color: #4f676d;
+}
+
+.fileChecklistRow {
+  margin-top: 0.7rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  font-size: 0.84rem;
+  color: #263f45;
+}
+
+.fileDetailGrid {
+  margin: 0.8rem 0 0;
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.fileDetailGrid dt {
+  margin: 0;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #567177;
+}
+
+.fileDetailGrid dd {
+  margin: 0.32rem 0 0;
+  color: #183237;
+  white-space: pre-wrap;
+}
+
 @media (max-width: 900px) {
   .headerRow {
     flex-direction: column;
@@ -505,6 +568,10 @@
   }
 
   .communicationFormTop {
+    grid-template-columns: 1fr;
+  }
+
+  .fileDetailGrid {
     grid-template-columns: 1fr;
   }
 }

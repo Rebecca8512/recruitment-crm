@@ -62,6 +62,20 @@ type ApplicationRecord = {
   updated_at: string;
 };
 
+type ApplicationFileRecord = {
+  id: string;
+  application_id: string;
+  has_resume: boolean;
+  has_formatted_resume: boolean;
+  has_cover_letter: boolean;
+  has_offer: boolean;
+  has_contract: boolean;
+  has_other: boolean;
+  other_note: string | null;
+  folder_url: string | null;
+  updated_at: string;
+};
+
 type CandidateCommunicationNoteRecord = {
   id: string;
   candidate_id: string;
@@ -113,12 +127,6 @@ const STAGE_OPTIONS = [
   "withdrawn",
 ] as const;
 const COMMUNICATION_TYPE_OPTIONS = ["Email", "Phone", "Social", "In person"] as const;
-const FILE_PLACEHOLDERS = [
-  { key: "resume", name: "Resume", status: "Coming soon" },
-  { key: "formatted_resume", name: "Formatted Resume", status: "Coming soon" },
-  { key: "cover_letter", name: "Cover Letter", status: "Coming soon" },
-  { key: "offer_docs", name: "Offer Documents", status: "Coming soon" },
-] as const;
 
 function formatJobType(value: string) {
   if (!value) return "-";
@@ -143,6 +151,7 @@ export default function CandidateProfilePage() {
 
   const [roles, setRoles] = useState<RoleRecord[]>([]);
   const [applications, setApplications] = useState<ApplicationRecord[]>([]);
+  const [applicationFiles, setApplicationFiles] = useState<ApplicationFileRecord[]>([]);
   const [communicationNotes, setCommunicationNotes] = useState<
     CandidateCommunicationNoteRecord[]
   >([]);
@@ -278,6 +287,26 @@ export default function CandidateProfilePage() {
         return;
       }
 
+      const currentApplications = (applicationsData ?? []) as ApplicationRecord[];
+      let currentApplicationFiles: ApplicationFileRecord[] = [];
+      if (currentApplications.length > 0) {
+        const applicationIds = currentApplications.map((row) => row.id);
+        const { data: fileData, error: fileError } = await supabase
+          .from("application_files")
+          .select(
+            "id,application_id,has_resume,has_formatted_resume,has_cover_letter,has_offer,has_contract,has_other,other_note,folder_url,updated_at",
+          )
+          .in("application_id", applicationIds);
+
+        if (fileError) {
+          setErrorMessage(fileError.message);
+          setIsLoading(false);
+          return;
+        }
+
+        currentApplicationFiles = (fileData ?? []) as ApplicationFileRecord[];
+      }
+
       const candidateStatusMap = ((candidateStatuses ?? []) as CandidateStatusRecord[]).reduce<
         Record<string, string>
       >((acc, row) => {
@@ -314,7 +343,8 @@ export default function CandidateProfilePage() {
 
       setCandidate(candidateData);
       setRoles((rolesData ?? []) as RoleRecord[]);
-      setApplications((applicationsData ?? []) as ApplicationRecord[]);
+      setApplications(currentApplications);
+      setApplicationFiles(currentApplicationFiles);
       setCommunicationNotes(
         (communicationNotesData ?? []) as CandidateCommunicationNoteRecord[],
       );
@@ -382,6 +412,13 @@ export default function CandidateProfilePage() {
         return new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime();
       });
   }, [applications, clientNameById, roleById, roleStatusByCode]);
+
+  const applicationFileByApplicationId = useMemo(() => {
+    return applicationFiles.reduce<Record<string, ApplicationFileRecord>>((acc, row) => {
+      acc[row.application_id] = row;
+      return acc;
+    }, {});
+  }, [applicationFiles]);
 
   const effectiveSelectedApplicationId = useMemo(() => {
     if (applicationRows.length === 0) return null;
@@ -588,7 +625,33 @@ export default function CandidateProfilePage() {
       return;
     }
 
+    const { data: createdFileRow, error: createdFileError } = await supabase
+      .from("application_files")
+      .upsert(
+        {
+          application_id: data.id,
+          created_by: currentUserId,
+        },
+        { onConflict: "application_id" },
+      )
+      .select(
+        "id,application_id,has_resume,has_formatted_resume,has_cover_letter,has_offer,has_contract,has_other,other_note,folder_url,updated_at",
+      )
+      .single<ApplicationFileRecord>();
+
+    if (createdFileError) {
+      setModalError(createdFileError.message);
+      setIsSavingApplication(false);
+      return;
+    }
+
     setApplications((current) => [data, ...current]);
+    if (createdFileRow) {
+      setApplicationFiles((current) => [
+        ...current.filter((row) => row.application_id !== createdFileRow.application_id),
+        createdFileRow,
+      ]);
+    }
     setSelectedApplicationId(data.id);
     setIsSavingApplication(false);
     setIsAddModalOpen(false);
@@ -608,6 +671,9 @@ export default function CandidateProfilePage() {
     }
 
     setApplications((current) => current.filter((row) => row.id !== applicationId));
+    setApplicationFiles((current) =>
+      current.filter((row) => row.application_id !== applicationId),
+    );
     if (selectedApplicationId === applicationId) {
       setSelectedApplicationId(null);
     }
@@ -1007,44 +1073,78 @@ export default function CandidateProfilePage() {
       ) : null}
 
       {activeTab === "Files" ? (
-        <>
-          <section className={styles.detailsCard}>
-            <div className={styles.detailsHeader}>
-              <h2 className={styles.detailsTitle}>Files</h2>
-              <button type="button" className={styles.disabledActionButton} disabled>
-                Upload file (coming soon)
-              </button>
+        <section className={styles.detailsCard}>
+          <div className={styles.detailsHeader}>
+            <h2 className={styles.detailsTitle}>Files</h2>
+          </div>
+          {applicationRows.length > 0 ? (
+            <div className={styles.fileRoleList}>
+              {applicationRows.map((row) => {
+                const paperwork = applicationFileByApplicationId[row.id];
+                return (
+                  <article key={row.id} className={styles.fileRoleCard}>
+                    <div className={styles.fileRoleHeader}>
+                      <div>
+                        <p className={styles.fileRoleTitle}>{row.roleTitle}</p>
+                        <p className={styles.fileRoleMeta}>
+                          {row.clientName || "-"}
+                        </p>
+                      </div>
+                      <Link
+                        href={`/admin/roles/${row.roleId}`}
+                        className={styles.editLink}
+                      >
+                        Open role
+                      </Link>
+                    </div>
+                    <div className={styles.fileChecklistRow}>
+                      <span>
+                        Resume: {paperwork?.has_resume ? "Yes" : "No"}
+                      </span>
+                      <span>
+                        Formatted resume:{" "}
+                        {paperwork?.has_formatted_resume ? "Yes" : "No"}
+                      </span>
+                      <span>
+                        Cover letter: {paperwork?.has_cover_letter ? "Yes" : "No"}
+                      </span>
+                      <span>Offer: {paperwork?.has_offer ? "Yes" : "No"}</span>
+                      <span>
+                        Contract: {paperwork?.has_contract ? "Yes" : "No"}
+                      </span>
+                      <span>Other: {paperwork?.has_other ? "Yes" : "No"}</span>
+                    </div>
+                    <dl className={styles.fileDetailGrid}>
+                      <div>
+                        <dt>Folder URL</dt>
+                        <dd>
+                          {paperwork?.folder_url ? (
+                            <a
+                              href={paperwork.folder_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className={styles.subtleLink}
+                            >
+                              Open folder
+                            </a>
+                          ) : (
+                            "-"
+                          )}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Other note</dt>
+                        <dd>{paperwork?.other_note || "-"}</dd>
+                      </div>
+                    </dl>
+                  </article>
+                );
+              })}
             </div>
-            <div className={styles.tableWrap}>
-              <table className={styles.dataTable}>
-                <thead>
-                  <tr>
-                    <th>File Type</th>
-                    <th>Status</th>
-                    <th>Open</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {FILE_PLACEHOLDERS.map((file) => (
-                    <tr key={file.key}>
-                      <td>{file.name}</td>
-                      <td>{file.status}</td>
-                      <td>
-                        <button
-                          type="button"
-                          className={styles.tableDisabledButton}
-                          disabled
-                        >
-                          Coming soon
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        </>
+          ) : (
+            <p className={styles.infoText}>No role applications yet.</p>
+          )}
+        </section>
       ) : null}
 
       {isAddModalOpen ? (
