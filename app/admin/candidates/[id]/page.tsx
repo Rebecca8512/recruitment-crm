@@ -62,6 +62,27 @@ type ApplicationRecord = {
   updated_at: string;
 };
 
+type CandidateCommunicationNoteRecord = {
+  id: string;
+  candidate_id: string;
+  role_id: string | null;
+  communication_type: string;
+  note_body: string;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type CandidateCommunicationNoteRow = {
+  id: string;
+  roleId: string | null;
+  roleTitle: string | null;
+  communicationType: string;
+  noteBody: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 type CandidateApplicationRow = {
   id: string;
   roleId: string;
@@ -91,6 +112,7 @@ const STAGE_OPTIONS = [
   "rejected",
   "withdrawn",
 ] as const;
+const COMMUNICATION_TYPE_OPTIONS = ["Email", "Phone", "Social", "In person"] as const;
 const FILE_PLACEHOLDERS = [
   { key: "resume", name: "Resume", status: "Coming soon" },
   { key: "formatted_resume", name: "Formatted Resume", status: "Coming soon" },
@@ -121,6 +143,9 @@ export default function CandidateProfilePage() {
 
   const [roles, setRoles] = useState<RoleRecord[]>([]);
   const [applications, setApplications] = useState<ApplicationRecord[]>([]);
+  const [communicationNotes, setCommunicationNotes] = useState<
+    CandidateCommunicationNoteRecord[]
+  >([]);
   const [clientNameById, setClientNameById] = useState<Record<string, string>>({});
   const [roleStatusByCode, setRoleStatusByCode] = useState<Record<string, string>>({});
 
@@ -138,6 +163,11 @@ export default function CandidateProfilePage() {
   const [applicationSubmittedOn, setApplicationSubmittedOn] = useState("");
   const [applicationOutcome, setApplicationOutcome] = useState("");
   const [applicationNotes, setApplicationNotes] = useState("");
+  const [communicationType, setCommunicationType] = useState<string>("Email");
+  const [communicationRoleId, setCommunicationRoleId] = useState<string>("");
+  const [communicationBody, setCommunicationBody] = useState("");
+  const [editingCommunicationId, setEditingCommunicationId] = useState<string | null>(null);
+  const [isSavingCommunication, setIsSavingCommunication] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -168,6 +198,7 @@ export default function CandidateProfilePage() {
         { data: roleStatuses, error: roleStatusesError },
         { data: applicationsData, error: applicationsError },
         { data: clientsData, error: clientsError },
+        { data: communicationNotesData, error: communicationNotesError },
       ] = await Promise.all([
         supabase
           .from("candidates")
@@ -188,6 +219,13 @@ export default function CandidateProfilePage() {
           .eq("candidate_id", candidateId)
           .order("updated_at", { ascending: false }),
         supabase.from("clients").select("id,name"),
+        supabase
+          .from("candidate_communication_notes")
+          .select(
+            "id,candidate_id,role_id,communication_type,note_body,created_by,created_at,updated_at",
+          )
+          .eq("candidate_id", candidateId)
+          .order("created_at", { ascending: false }),
       ]);
 
       if (!isMounted) return;
@@ -234,6 +272,12 @@ export default function CandidateProfilePage() {
         return;
       }
 
+      if (communicationNotesError) {
+        setErrorMessage(communicationNotesError.message);
+        setIsLoading(false);
+        return;
+      }
+
       const candidateStatusMap = ((candidateStatuses ?? []) as CandidateStatusRecord[]).reduce<
         Record<string, string>
       >((acc, row) => {
@@ -271,6 +315,9 @@ export default function CandidateProfilePage() {
       setCandidate(candidateData);
       setRoles((rolesData ?? []) as RoleRecord[]);
       setApplications((applicationsData ?? []) as ApplicationRecord[]);
+      setCommunicationNotes(
+        (communicationNotesData ?? []) as CandidateCommunicationNoteRecord[],
+      );
       setClientNameById(clientMap);
       setRoleStatusByCode(roleStatusMap);
       setIsLoading(false);
@@ -363,6 +410,126 @@ export default function CandidateProfilePage() {
       })
       .slice(0, 20);
   }, [applications, clientNameById, roleQuery, roles]);
+
+  const communicationRows = useMemo<CandidateCommunicationNoteRow[]>(() => {
+    return communicationNotes.map((row) => ({
+      id: row.id,
+      roleId: row.role_id,
+      roleTitle: row.role_id ? (roleById[row.role_id]?.title ?? "Role unavailable") : null,
+      communicationType: row.communication_type,
+      noteBody: row.note_body,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }));
+  }, [communicationNotes, roleById]);
+
+  const resetCommunicationForm = () => {
+    setCommunicationType("Email");
+    setCommunicationRoleId("");
+    setCommunicationBody("");
+    setEditingCommunicationId(null);
+  };
+
+  const handleSaveCommunication = async () => {
+    if (!candidateId || !UUID_PATTERN.test(candidateId)) {
+      setErrorMessage("Invalid candidate id.");
+      return;
+    }
+
+    if (!communicationBody.trim()) {
+      setErrorMessage("Communication note is required.");
+      return;
+    }
+
+    setErrorMessage("");
+    setIsSavingCommunication(true);
+
+    if (editingCommunicationId) {
+      const { data, error } = await supabase
+        .from("candidate_communication_notes")
+        .update({
+          role_id: communicationRoleId || null,
+          communication_type: communicationType,
+          note_body: communicationBody.trim(),
+        })
+        .eq("id", editingCommunicationId)
+        .eq("candidate_id", candidateId)
+        .select(
+          "id,candidate_id,role_id,communication_type,note_body,created_by,created_at,updated_at",
+        )
+        .single<CandidateCommunicationNoteRecord>();
+
+      if (error || !data) {
+        setErrorMessage(error?.message ?? "Failed to update communication note.");
+        setIsSavingCommunication(false);
+        return;
+      }
+
+      setCommunicationNotes((current) =>
+        current.map((row) => (row.id === data.id ? data : row)),
+      );
+      setIsSavingCommunication(false);
+      resetCommunicationForm();
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("candidate_communication_notes")
+      .insert({
+        candidate_id: candidateId,
+        role_id: communicationRoleId || null,
+        communication_type: communicationType,
+        note_body: communicationBody.trim(),
+        created_by: currentUserId,
+      })
+      .select(
+        "id,candidate_id,role_id,communication_type,note_body,created_by,created_at,updated_at",
+      )
+      .single<CandidateCommunicationNoteRecord>();
+
+    if (error || !data) {
+      setErrorMessage(error?.message ?? "Failed to save communication note.");
+      setIsSavingCommunication(false);
+      return;
+    }
+
+    setCommunicationNotes((current) => [data, ...current]);
+    setIsSavingCommunication(false);
+    resetCommunicationForm();
+  };
+
+  const handleEditCommunication = (row: CandidateCommunicationNoteRow) => {
+    setEditingCommunicationId(row.id);
+    setCommunicationType(row.communicationType);
+    setCommunicationRoleId(row.roleId ?? "");
+    setCommunicationBody(row.noteBody);
+    setErrorMessage("");
+  };
+
+  const handleDeleteCommunication = async (communicationId: string) => {
+    if (!candidateId || !UUID_PATTERN.test(candidateId)) {
+      setErrorMessage("Invalid candidate id.");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("candidate_communication_notes")
+      .delete()
+      .eq("id", communicationId)
+      .eq("candidate_id", candidateId);
+
+    if (error) {
+      setErrorMessage(error.message);
+      return;
+    }
+
+    setCommunicationNotes((current) =>
+      current.filter((row) => row.id !== communicationId),
+    );
+    if (editingCommunicationId === communicationId) {
+      resetCommunicationForm();
+    }
+  };
 
   const resetApplicationModal = () => {
     setRoleQuery("");
@@ -735,19 +902,107 @@ export default function CandidateProfilePage() {
         <section className={styles.detailsCard}>
           <div className={styles.detailsHeader}>
             <h2 className={styles.detailsTitle}>Notes</h2>
-            <Link
-              href={`/admin/candidates/${candidate.id}/edit`}
-              className={styles.editLink}
-            >
-              Edit details
-            </Link>
           </div>
-          <dl className={styles.detailsGrid}>
-            <div className={styles.notesBlockInline}>
-              <dt>Candidate Notes</dt>
-              <dd>{candidate.notes || "-"}</dd>
+          <div className={styles.communicationForm}>
+            <div className={styles.communicationFormTop}>
+              <label className={styles.modalField}>
+                <span>Type</span>
+                <select
+                  value={communicationType}
+                  onChange={(event) => setCommunicationType(event.target.value)}
+                >
+                  {COMMUNICATION_TYPE_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className={styles.modalField}>
+                <span>Job</span>
+                <select
+                  value={communicationRoleId}
+                  onChange={(event) => setCommunicationRoleId(event.target.value)}
+                >
+                  <option value="">General conversation</option>
+                  {applicationRows.map((row) => (
+                    <option key={row.roleId} value={row.roleId}>
+                      {row.roleTitle}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
-          </dl>
+
+            <label className={styles.modalField}>
+              <span>Communication</span>
+              <textarea
+                rows={5}
+                value={communicationBody}
+                onChange={(event) => setCommunicationBody(event.target.value)}
+              />
+            </label>
+
+            <div className={styles.communicationActions}>
+              <button
+                type="button"
+                className={styles.submitButton}
+                onClick={handleSaveCommunication}
+                disabled={isSavingCommunication}
+              >
+                {isSavingCommunication
+                  ? "Saving..."
+                  : editingCommunicationId
+                    ? "Save changes"
+                    : "Save note"}
+              </button>
+              {editingCommunicationId ? (
+                <button
+                  type="button"
+                  className={styles.cancelButton}
+                  onClick={resetCommunicationForm}
+                >
+                  Cancel
+                </button>
+              ) : null}
+            </div>
+          </div>
+
+          <div className={styles.communicationList}>
+            {communicationRows.length > 0 ? (
+              communicationRows.map((row) => (
+                <article key={row.id} className={styles.communicationItem}>
+                  <div className={styles.communicationItemHeader}>
+                    <div className={styles.communicationMeta}>
+                      <span>{row.communicationType}</span>
+                      <span>{new Date(row.createdAt).toLocaleString("en-GB")}</span>
+                      <span>{row.roleTitle || "General"}</span>
+                    </div>
+                    <div className={styles.communicationMetaActions}>
+                      <button
+                        type="button"
+                        className={styles.discreetAction}
+                        onClick={() => handleEditCommunication(row)}
+                      >
+                        edit
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.discreetAction}
+                        onClick={() => handleDeleteCommunication(row.id)}
+                      >
+                        delete
+                      </button>
+                    </div>
+                  </div>
+                  <p className={styles.communicationBody}>{row.noteBody}</p>
+                </article>
+              ))
+            ) : (
+              <p className={styles.infoText}>No communication notes yet.</p>
+            )}
+          </div>
         </section>
       ) : null}
 

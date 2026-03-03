@@ -422,6 +422,78 @@
   color: #8f1b13;
 }
 
+.communicationForm {
+  margin-top: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.communicationFormTop {
+  display: grid;
+  grid-template-columns: minmax(0, 220px) minmax(0, 320px);
+  gap: 0.7rem;
+}
+
+.communicationActions {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.communicationList {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.communicationItem {
+  border: 1px solid rgba(0, 15, 20, 0.1);
+  border-radius: 0.72rem;
+  background: #ffffff;
+  padding: 0.7rem 0.75rem;
+}
+
+.communicationItemHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.communicationMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  font-size: 0.78rem;
+  color: #52686d;
+}
+
+.communicationMetaActions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.discreetAction {
+  border: 0;
+  background: transparent;
+  color: #6f858a;
+  text-decoration: underline;
+  text-underline-offset: 0.12rem;
+  font-size: 0.74rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+.discreetAction:hover {
+  color: #4d6368;
+}
+
+.communicationBody {
+  margin: 0.5rem 0 0;
+  color: #193237;
+  white-space: pre-wrap;
+}
+
 @media (max-width: 900px) {
   .headerRow {
     flex-direction: column;
@@ -429,6 +501,10 @@
 
   .detailsGrid,
   .modalGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .communicationFormTop {
     grid-template-columns: 1fr;
   }
 }
