@@ -3,8 +3,16 @@
   display: grid;
   grid-template-columns: 260px 1fr;
   background:
-    radial-gradient(circle at 88% 84%, rgba(249, 115, 22, 0.15), transparent 36%),
-    radial-gradient(circle at 16% 18%, rgba(20, 184, 166, 0.12), transparent 34%),
+    radial-gradient(
+      circle at 88% 84%,
+      rgba(249, 115, 22, 0.15),
+      transparent 36%
+    ),
+    radial-gradient(
+      circle at 16% 18%,
+      rgba(20, 184, 166, 0.12),
+      transparent 34%
+    ),
     #f7f2e9;
 }
 
@@ -45,7 +53,9 @@
   border-radius: 0.6rem;
   color: #d3e5de;
   text-decoration: none;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .navItem:hover {
@@ -94,11 +104,13 @@
   color: #001418;
   padding: 0.58rem 0.86rem;
   cursor: pointer;
-  transition: border-color 0.15s ease, color 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .actionButton:hover {
-  border-color: #0a9396;
+  border-color: #c5e7dc;
   color: #0a5254;
 }
 
@@ -198,7 +210,7 @@
 }
 
 .modalOptionCard:hover {
-  border-color: #0a9396;
+  border-color: #c5e7dc;
   box-shadow: 0 10px 18px rgba(0, 15, 20, 0.08);
 }
 
