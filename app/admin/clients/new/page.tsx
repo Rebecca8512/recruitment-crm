@@ -52,6 +52,7 @@ export default function NewClientPage() {
   const [email, setEmail] = useState("");
   const [website, setWebsite] = useState("");
   const [companiesHouseNumber, setCompaniesHouseNumber] = useState("");
+  const [driveShareUrl, setDriveShareUrl] = useState("");
 
   const [addressLine1, setAddressLine1] = useState("");
   const [addressLine2, setAddressLine2] = useState("");
@@ -152,6 +153,7 @@ export default function NewClientPage() {
       email: email.trim() || null,
       website: website.trim() || null,
       companies_house_number: companiesHouseNumber.trim() || null,
+      google_drive_url: driveShareUrl.trim() || null,
       address_line_1: addressLine1.trim() || null,
       address_line_2: addressLine2.trim() || null,
       city: city.trim() || null,
@@ -314,6 +316,16 @@ export default function NewClientPage() {
                 type="text"
                 value={companiesHouseNumber}
                 onChange={(event) => setCompaniesHouseNumber(event.target.value)}
+              />
+            </label>
+
+            <label className={styles.field}>
+              <span className={styles.label}>Drive Share URL</span>
+              <input
+                type="url"
+                value={driveShareUrl}
+                onChange={(event) => setDriveShareUrl(event.target.value)}
+                placeholder="https://"
               />
             </label>
           </div>

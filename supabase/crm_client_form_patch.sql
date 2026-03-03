@@ -6,6 +6,7 @@ alter table public.clients
   add column if not exists account_manager_id uuid references auth.users(id),
   add column if not exists parent_client_id uuid references public.clients(id) on delete set null,
   add column if not exists email text,
+  add column if not exists google_drive_url text,
   add column if not exists companies_house_number text,
   add column if not exists about text,
   add column if not exists source_other text,

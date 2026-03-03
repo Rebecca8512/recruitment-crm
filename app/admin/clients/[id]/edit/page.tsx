@@ -44,6 +44,7 @@ type ClientDetails = {
   parent_client_id: string | null;
   email: string | null;
   website: string | null;
+  google_drive_url: string | null;
   companies_house_number: string | null;
   address_line_1: string | null;
   address_line_2: string | null;
@@ -89,6 +90,7 @@ export default function EditClientPage() {
   const [email, setEmail] = useState("");
   const [website, setWebsite] = useState("");
   const [companiesHouseNumber, setCompaniesHouseNumber] = useState("");
+  const [driveShareUrl, setDriveShareUrl] = useState("");
 
   const [addressLine1, setAddressLine1] = useState("");
   const [addressLine2, setAddressLine2] = useState("");
@@ -121,7 +123,7 @@ export default function EditClientPage() {
           supabase
             .from("clients")
             .select(
-              "id,name,contact_number,account_manager_id,industry,about,source,source_other,status_code,parent_client_id,email,website,companies_house_number,address_line_1,address_line_2,city,county,postcode",
+              "id,name,contact_number,account_manager_id,industry,about,source,source_other,status_code,parent_client_id,email,website,google_drive_url,companies_house_number,address_line_1,address_line_2,city,county,postcode",
             )
             .eq("id", clientId)
             .maybeSingle<ClientDetails>(),
@@ -197,6 +199,7 @@ export default function EditClientPage() {
       setParentClientId(clientData.parent_client_id ?? "");
       setEmail(clientData.email ?? "");
       setWebsite(clientData.website ?? "");
+      setDriveShareUrl(clientData.google_drive_url ?? "");
       setCompaniesHouseNumber(clientData.companies_house_number ?? "");
       setAddressLine1(clientData.address_line_1 ?? "");
       setAddressLine2(clientData.address_line_2 ?? "");
@@ -253,6 +256,7 @@ export default function EditClientPage() {
       parent_client_id: parentClientId || null,
       email: email.trim() || null,
       website: website.trim() || null,
+      google_drive_url: driveShareUrl.trim() || null,
       companies_house_number: companiesHouseNumber.trim() || null,
       address_line_1: addressLine1.trim() || null,
       address_line_2: addressLine2.trim() || null,
@@ -487,6 +491,16 @@ export default function EditClientPage() {
                 type="text"
                 value={companiesHouseNumber}
                 onChange={(event) => setCompaniesHouseNumber(event.target.value)}
+              />
+            </label>
+
+            <label className={styles.field}>
+              <span className={styles.label}>Drive Share URL</span>
+              <input
+                type="url"
+                value={driveShareUrl}
+                onChange={(event) => setDriveShareUrl(event.target.value)}
+                placeholder="https://"
               />
             </label>
           </div>

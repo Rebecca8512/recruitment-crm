@@ -92,6 +92,7 @@ create table if not exists public.clients (
   parent_client_id uuid references public.clients(id) on delete set null,
   email text,
   website text,
+  google_drive_url text,
   companies_house_number text,
   industry text,
   about text,

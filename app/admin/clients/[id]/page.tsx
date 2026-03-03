@@ -10,11 +10,22 @@ type ClientRecord = {
   id: string;
   name: string;
   contact_number: string | null;
+  account_manager_id: string | null;
+  parent_client_id: string | null;
   email: string | null;
   website: string | null;
+  google_drive_url: string | null;
+  companies_house_number: string | null;
   industry: string | null;
+  about: string | null;
   status_code: string | null;
   source: string | null;
+  source_other: string | null;
+  address_line_1: string | null;
+  address_line_2: string | null;
+  city: string | null;
+  county: string | null;
+  postcode: string | null;
   updated_at: string;
 };
 
@@ -110,14 +121,16 @@ type ClientRoleRow = {
   lastActivity: string;
 };
 
-type ClientFilePlaceholder = {
-  key: string;
-  fileName: string;
-  category: string;
-  status: string;
+type ParentClientRecord = {
+  name: string;
 };
 
-const TABS = ["Overview", "Contacts", "Roles", "Candidates", "Files"] as const;
+type ProfileRecord = {
+  full_name: string | null;
+  email: string | null;
+};
+
+const TABS = ["Overview", "Contacts", "Roles", "Candidates"] as const;
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -129,27 +142,6 @@ function formatJobType(value: string) {
     .join(" ");
 }
 
-const FILE_PLACEHOLDERS: ClientFilePlaceholder[] = [
-  {
-    key: "client_contract",
-    fileName: "Client Contract",
-    category: "Contract",
-    status: "Awaiting upload",
-  },
-  {
-    key: "terms_and_agreement",
-    fileName: "Terms & Agreement",
-    category: "Legal",
-    status: "Awaiting upload",
-  },
-  {
-    key: "other_documents",
-    fileName: "Other Documents",
-    category: "Other",
-    status: "Awaiting upload",
-  },
-];
-
 export default function ClientProfilePage() {
   const params = useParams<{ id?: string }>();
   const clientId = Array.isArray(params.id) ? params.id[0] : params.id;
@@ -159,6 +151,9 @@ export default function ClientProfilePage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [client, setClient] = useState<ClientRecord | null>(null);
   const [statusLabel, setStatusLabel] = useState<string>("Unassigned");
+  const [accountManagerLabel, setAccountManagerLabel] = useState("-");
+  const [parentClientName, setParentClientName] = useState("-");
+
   const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>("Overview");
   const [employmentRows, setEmploymentRows] = useState<EmploymentRecord[]>([]);
   const [contactRows, setContactRows] = useState<ContactRecord[]>([]);
@@ -166,9 +161,6 @@ export default function ClientProfilePage() {
   const [roleStatusMap, setRoleStatusMap] = useState<Record<string, string>>({});
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
-  const [selectedFileKey, setSelectedFileKey] = useState<string>(
-    FILE_PLACEHOLDERS[0].key,
-  );
 
   useEffect(() => {
     let isMounted = true;
@@ -186,29 +178,28 @@ export default function ClientProfilePage() {
         { data: employmentsData, error: employmentsError },
         { data: rolesData, error: rolesError },
         { data: roleStatusesData, error: roleStatusesError },
-      ] =
-        await Promise.all([
-          supabase
-            .from("clients")
-            .select(
-              "id,name,contact_number,email,website,industry,status_code,source,updated_at",
-            )
-            .eq("id", clientId)
-            .maybeSingle<ClientRecord>(),
-          supabase.from("client_statuses").select("code,label"),
-          supabase
-            .from("contact_employments")
-            .select("id,contact_id,job_title,is_primary,start_date,end_date,updated_at")
-            .eq("client_id", clientId),
-          supabase
-            .from("roles")
-            .select(
-              "id,title,contact_id,target_date,status_code,job_type,salary_text,expected_revenue_per_position,total_expected_revenue,actual_revenue,notes,updated_at",
-            )
-            .eq("client_id", clientId)
-            .order("updated_at", { ascending: false }),
-          supabase.from("role_statuses").select("code,label"),
-        ]);
+      ] = await Promise.all([
+        supabase
+          .from("clients")
+          .select(
+            "id,name,contact_number,account_manager_id,parent_client_id,email,website,google_drive_url,companies_house_number,industry,about,status_code,source,source_other,address_line_1,address_line_2,city,county,postcode,updated_at",
+          )
+          .eq("id", clientId)
+          .maybeSingle<ClientRecord>(),
+        supabase.from("client_statuses").select("code,label"),
+        supabase
+          .from("contact_employments")
+          .select("id,contact_id,job_title,is_primary,start_date,end_date,updated_at")
+          .eq("client_id", clientId),
+        supabase
+          .from("roles")
+          .select(
+            "id,title,contact_id,target_date,status_code,job_type,salary_text,expected_revenue_per_position,total_expected_revenue,actual_revenue,notes,updated_at",
+          )
+          .eq("client_id", clientId)
+          .order("updated_at", { ascending: false }),
+        supabase.from("role_statuses").select("code,label"),
+      ]);
 
       if (!isMounted) return;
 
@@ -271,6 +262,7 @@ export default function ClientProfilePage() {
         acc[row.code] = row.label;
         return acc;
       }, {});
+
       const roleStatuses = ((roleStatusesData ?? []) as RoleStatusRecord[]).reduce<
         Record<string, string>
       >((acc, row) => {
@@ -278,12 +270,39 @@ export default function ClientProfilePage() {
         return acc;
       }, {});
 
+      let parentName = "-";
+      if (clientData.parent_client_id) {
+        const { data: parentData } = await supabase
+          .from("clients")
+          .select("name")
+          .eq("id", clientData.parent_client_id)
+          .maybeSingle<ParentClientRecord>();
+
+        if (!isMounted) return;
+        parentName = parentData?.name ?? "-";
+      }
+
+      let managerName = "-";
+      if (clientData.account_manager_id) {
+        const { data: managerData } = await supabase
+          .from("profiles")
+          .select("full_name,email")
+          .eq("id", clientData.account_manager_id)
+          .maybeSingle<ProfileRecord>();
+
+        if (!isMounted) return;
+        managerName =
+          managerData?.full_name?.trim() || managerData?.email || "-";
+      }
+
       setClient(clientData);
       setStatusLabel(
         clientData.status_code
           ? (statusMap[clientData.status_code] ?? clientData.status_code)
           : "Unassigned",
       );
+      setParentClientName(parentName);
+      setAccountManagerLabel(managerName);
       setEmploymentRows(employments);
       setContactRows(contacts);
       setRoleRows((rolesData ?? []) as RoleRecord[]);
@@ -400,13 +419,6 @@ export default function ClientProfilePage() {
     return clientRoles.find((role) => role.id === effectiveSelectedRoleId) ?? null;
   }, [clientRoles, effectiveSelectedRoleId]);
 
-  const selectedFile = useMemo(() => {
-    return (
-      FILE_PLACEHOLDERS.find((file) => file.key === selectedFileKey) ??
-      FILE_PLACEHOLDERS[0]
-    );
-  }, [selectedFileKey]);
-
   if (isLoading) {
     return (
       <main className={styles.page}>
@@ -459,40 +471,127 @@ export default function ClientProfilePage() {
       </section>
 
       {activeTab === "Overview" ? (
-        <section className={styles.detailsCard}>
-          <div className={styles.detailsHeader}>
-            <h2 className={styles.detailsTitle}>Overview</h2>
-            <Link href={`/admin/clients/${client.id}/edit`} className={styles.editLink}>
-              Edit details
-            </Link>
-          </div>
-          <dl className={styles.detailsGrid}>
-            <div>
-              <dt>Status</dt>
-              <dd>{statusLabel}</dd>
+        <>
+          <section className={styles.detailsCard}>
+            <div className={styles.detailsHeader}>
+              <h2 className={styles.detailsTitle}>Overview</h2>
+              <Link href={`/admin/clients/${client.id}/edit`} className={styles.editLink}>
+                Edit details
+              </Link>
             </div>
-            <div>
-              <dt>Contact Number</dt>
-              <dd>{client.contact_number || "-"}</dd>
+            <div className={styles.tableWrap}>
+              <table className={styles.dataTable}>
+                <thead>
+                  <tr>
+                    <th>Client Name</th>
+                    <th>Status</th>
+                    <th>Contact Number</th>
+                    <th>Email</th>
+                    <th>Last Updated</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className={styles.tableRowActive}>
+                    <td>{client.name}</td>
+                    <td>{statusLabel}</td>
+                    <td>{client.contact_number || "-"}</td>
+                    <td>{client.email || "-"}</td>
+                    <td>{new Date(client.updated_at).toLocaleDateString("en-GB")}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-            <div>
-              <dt>Email</dt>
-              <dd>{client.email || "-"}</dd>
+          </section>
+
+          <section className={styles.detailsCard}>
+            <div className={styles.detailsHeader}>
+              <h2 className={styles.detailsTitle}>Client Details</h2>
             </div>
-            <div>
-              <dt>Website</dt>
-              <dd>{client.website || "-"}</dd>
-            </div>
-            <div>
-              <dt>Industry</dt>
-              <dd>{client.industry || "-"}</dd>
-            </div>
-            <div>
-              <dt>Source</dt>
-              <dd>{client.source || "-"}</dd>
-            </div>
-          </dl>
-        </section>
+            <dl className={styles.detailsGrid}>
+              <div>
+                <dt>Account Manager</dt>
+                <dd>{accountManagerLabel}</dd>
+              </div>
+              <div>
+                <dt>Parent Client</dt>
+                <dd>{parentClientName}</dd>
+              </div>
+              <div>
+                <dt>Status</dt>
+                <dd>{statusLabel}</dd>
+              </div>
+              <div>
+                <dt>Industry</dt>
+                <dd>{client.industry || "-"}</dd>
+              </div>
+              <div>
+                <dt>Source</dt>
+                <dd>{client.source || "-"}</dd>
+              </div>
+              <div>
+                <dt>Source Other</dt>
+                <dd>{client.source_other || "-"}</dd>
+              </div>
+              <div>
+                <dt>Website</dt>
+                <dd>{client.website || "-"}</dd>
+              </div>
+              <div>
+                <dt>Drive Share URL</dt>
+                <dd>
+                  {client.google_drive_url ? (
+                    <a
+                      href={client.google_drive_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={styles.subtleLink}
+                    >
+                      Open
+                    </a>
+                  ) : (
+                    "-"
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt>Companies House Number</dt>
+                <dd>{client.companies_house_number || "-"}</dd>
+              </div>
+              <div>
+                <dt>Contact Number</dt>
+                <dd>{client.contact_number || "-"}</dd>
+              </div>
+              <div>
+                <dt>Email</dt>
+                <dd>{client.email || "-"}</dd>
+              </div>
+              <div>
+                <dt>Address Line 1</dt>
+                <dd>{client.address_line_1 || "-"}</dd>
+              </div>
+              <div>
+                <dt>Address Line 2</dt>
+                <dd>{client.address_line_2 || "-"}</dd>
+              </div>
+              <div>
+                <dt>City</dt>
+                <dd>{client.city || "-"}</dd>
+              </div>
+              <div>
+                <dt>County</dt>
+                <dd>{client.county || "-"}</dd>
+              </div>
+              <div>
+                <dt>Postcode</dt>
+                <dd>{client.postcode || "-"}</dd>
+              </div>
+              <div className={styles.notesBlockInline}>
+                <dt>About</dt>
+                <dd>{client.about || "-"}</dd>
+              </div>
+            </dl>
+          </section>
+        </>
       ) : null}
 
       {activeTab === "Contacts" ? (
@@ -832,98 +931,7 @@ export default function ClientProfilePage() {
         </>
       ) : null}
 
-      {activeTab === "Files" ? (
-        <>
-          <section className={styles.detailsCard}>
-            <div className={styles.detailsHeader}>
-              <h2 className={styles.detailsTitle}>Files</h2>
-              <button type="button" className={styles.disabledActionButton} disabled>
-                Upload file (coming soon)
-              </button>
-            </div>
-            <div className={styles.tableWrap}>
-              <table className={styles.dataTable}>
-                <thead>
-                  <tr>
-                    <th>File Name</th>
-                    <th>Category</th>
-                    <th>Status</th>
-                    <th>Open</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {FILE_PLACEHOLDERS.map((file) => (
-                    <tr
-                      key={file.key}
-                      className={
-                        selectedFile.key === file.key ? styles.tableRowActive : ""
-                      }
-                    >
-                      <td>
-                        <button
-                          type="button"
-                          className={styles.rowSelectButton}
-                          onClick={() => setSelectedFileKey(file.key)}
-                        >
-                          {file.fileName}
-                        </button>
-                      </td>
-                      <td>{file.category}</td>
-                      <td>{file.status}</td>
-                      <td>
-                        <button
-                          type="button"
-                          className={styles.tableDisabledButton}
-                          disabled
-                        >
-                          Coming soon
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          <section className={styles.detailsCard}>
-            <div className={styles.detailsHeader}>
-              <h2 className={styles.detailsTitle}>File Details</h2>
-            </div>
-            <dl className={styles.detailsGrid}>
-              <div>
-                <dt>File Name</dt>
-                <dd>{selectedFile.fileName}</dd>
-              </div>
-              <div>
-                <dt>Category</dt>
-                <dd>{selectedFile.category}</dd>
-              </div>
-              <div>
-                <dt>Status</dt>
-                <dd>{selectedFile.status}</dd>
-              </div>
-              <div>
-                <dt>Added</dt>
-                <dd>-</dd>
-              </div>
-              <div>
-                <dt>Uploaded By</dt>
-                <dd>-</dd>
-              </div>
-              <div>
-                <dt>File Size</dt>
-                <dd>-</dd>
-              </div>
-            </dl>
-          </section>
-        </>
-      ) : null}
-
-      {activeTab !== "Overview" &&
-      activeTab !== "Contacts" &&
-      activeTab !== "Roles" &&
-      activeTab !== "Files" ? (
+      {activeTab !== "Overview" && activeTab !== "Contacts" && activeTab !== "Roles" ? (
         <section className={styles.detailsCard}>
           <div className={styles.detailsHeader}>
             <h2 className={styles.detailsTitle}>{activeTab}</h2>
