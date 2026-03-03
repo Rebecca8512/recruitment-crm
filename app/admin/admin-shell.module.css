@@ -175,36 +175,50 @@
 }
 
 .modalBody {
-  display: grid;
-  grid-template-columns: 190px 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 0.8rem;
   padding: 1rem 1.1rem 1.1rem;
 }
 
-.modalOptionList {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
+.modalOptionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
 }
 
-.modalOptionButton {
+.modalOptionCard {
   border: 1px solid rgba(0, 15, 20, 0.15);
-  border-radius: 0.58rem;
+  border-radius: 0.7rem;
   background: #ffffff;
   color: #12292e;
-  padding: 0.58rem 0.65rem;
+  padding: 0.72rem;
   text-align: left;
   cursor: pointer;
 }
 
-.modalOptionButton:hover {
+.modalOptionCard:hover {
   border-color: #0a9396;
+  box-shadow: 0 10px 18px rgba(0, 15, 20, 0.08);
 }
 
-.modalOptionButtonActive {
-  background: rgba(10, 147, 150, 0.12);
-  border-color: #0a9396;
+.modalOptionTitle {
+  margin: 0;
+  font-size: 1rem;
+  color: #00171b;
+}
+
+.modalOptionDescription {
+  margin: 0.5rem 0 0;
+  color: #2d3f43;
+  font-size: 0.92rem;
+}
+
+.modalOptionMeta {
+  margin: 0.6rem 0 0;
   color: #0a5254;
+  font-size: 0.84rem;
+  font-weight: 500;
 }
 
 .modalOptionPanel {
@@ -264,15 +278,10 @@
   }
 
   .modalBody {
+    padding: 0.9rem;
+  }
+
+  .modalOptionGrid {
     grid-template-columns: 1fr;
-  }
-
-  .modalOptionList {
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
-
-  .modalOptionButton {
-    width: calc(50% - 0.25rem);
   }
 }

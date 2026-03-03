@@ -8,6 +8,13 @@
   margin-bottom: 0.2rem;
 }
 
+.headerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
 .eyebrow {
   margin: 0;
   font-size: 0.75rem;
@@ -49,4 +56,18 @@
 
 .list li + li {
   margin-top: 0.35rem;
+}
+
+.actionLink {
+  border: 1px solid rgba(0, 15, 20, 0.2);
+  border-radius: 0.62rem;
+  background: #ffffff;
+  color: #001418;
+  padding: 0.58rem 0.86rem;
+  text-decoration: none;
+}
+
+.actionLink:hover {
+  border-color: #0a9396;
+  color: #0a5254;
 }

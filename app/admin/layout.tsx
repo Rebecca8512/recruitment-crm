@@ -19,21 +19,25 @@ const ADD_OPTIONS = [
     id: "client",
     label: "Client",
     description: "Create a business account, including status and notes.",
+    isReady: true,
   },
   {
     id: "contact",
     label: "Contact",
     description: "Add a person and link employment to a client record.",
+    isReady: false,
   },
   {
     id: "role",
     label: "Role",
     description: "Open a new job requirement linked to a client.",
+    isReady: false,
   },
   {
     id: "candidate",
     label: "Candidate",
     description: "Capture a candidate profile, with or without an active role.",
+    isReady: false,
   },
 ] as const;
 
@@ -51,7 +55,9 @@ export default function AdminLayout({
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [userEmail, setUserEmail] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [activeAddOption, setActiveAddOption] = useState<AddOptionId>("client");
+  const [comingSoonOption, setComingSoonOption] = useState<AddOptionId | null>(
+    null,
+  );
 
   useEffect(() => {
     if (isLoginRoute) {
@@ -111,6 +117,7 @@ export default function AdminLayout({
 
   const closeAddModal = () => {
     setIsAddModalOpen(false);
+    setComingSoonOption(null);
   };
 
   useEffect(() => {
@@ -150,7 +157,8 @@ export default function AdminLayout({
 
         <nav className={styles.nav} aria-label="Main navigation">
           {NAV_ITEMS.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive =
+              pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (
               <Link
                 key={item.href}
@@ -174,7 +182,10 @@ export default function AdminLayout({
           <div className={styles.topActions}>
             <button
               className={styles.actionButton}
-              onClick={() => setIsAddModalOpen(true)}
+              onClick={() => {
+                setComingSoonOption(null);
+                setIsAddModalOpen(true);
+              }}
             >
               + Add
             </button>
@@ -211,35 +222,54 @@ export default function AdminLayout({
             </header>
 
             <div className={styles.modalBody}>
-              <aside className={styles.modalOptionList}>
-                {ADD_OPTIONS.map((option) => {
-                  const isActive = option.id === activeAddOption;
-                  return (
-                    <button
-                      key={option.id}
-                      className={`${styles.modalOptionButton} ${isActive ? styles.modalOptionButtonActive : ""}`}
-                      onClick={() => setActiveAddOption(option.id)}
-                    >
-                      {option.label}
-                    </button>
-                  );
-                })}
-              </aside>
+              <div className={styles.modalOptionGrid}>
+                {ADD_OPTIONS.map((option) => (
+                  <button
+                    key={option.id}
+                    className={styles.modalOptionCard}
+                    onClick={() => {
+                      if (option.id === "client") {
+                        closeAddModal();
+                        router.push("/admin/clients/new");
+                        return;
+                      }
+                      setComingSoonOption(option.id);
+                    }}
+                  >
+                    <p className={styles.modalOptionTitle}>{option.label}</p>
+                    <p className={styles.modalOptionDescription}>
+                      {option.description}
+                    </p>
+                    <p className={styles.modalOptionMeta}>
+                      {option.isReady ? "Open form" : "Coming next"}
+                    </p>
+                  </button>
+                ))}
+              </div>
 
               <section className={styles.modalOptionPanel}>
-                {ADD_OPTIONS.filter((option) => option.id === activeAddOption).map(
-                  (option) => (
-                    <div key={option.id}>
-                      <h4 className={styles.modalPanelTitle}>
-                        Add {option.label}
-                      </h4>
-                      <p className={styles.modalPanelText}>{option.description}</p>
-                      <div className={styles.modalPlaceholder}>
-                        Form for {option.label.toLowerCase()} will be built here
-                        next.
-                      </div>
+                {comingSoonOption ? (
+                  <div>
+                    <h4 className={styles.modalPanelTitle}>
+                      {ADD_OPTIONS.find((item) => item.id === comingSoonOption)
+                        ?.label ?? "Record"}{" "}
+                      form
+                    </h4>
+                    <p className={styles.modalPanelText}>
+                      This form will be added next. The Client form is available
+                      now.
+                    </p>
+                    <div className={styles.modalPlaceholder}>
+                      Choose Client to open the new dedicated creation page.
                     </div>
-                  ),
+                  </div>
+                ) : (
+                  <div>
+                    <h4 className={styles.modalPanelTitle}>Add new record</h4>
+                    <p className={styles.modalPanelText}>
+                      Select a record type above to continue.
+                    </p>
+                  </div>
                 )}
               </section>
             </div>

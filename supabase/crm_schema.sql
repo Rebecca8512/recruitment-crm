@@ -87,15 +87,37 @@ on conflict (code) do nothing;
 create table if not exists public.clients (
   id uuid primary key default gen_random_uuid(),
   name text not null,
+  contact_number text,
+  account_manager_id uuid references auth.users(id),
+  parent_client_id uuid references public.clients(id) on delete set null,
+  email text,
   website text,
+  companies_house_number text,
   industry text,
-  location text,
+  about text,
   status_code text not null default 'prospect' references public.client_statuses(code),
   source text,
-  notes text,
+  source_other text,
+  address_line_1 text,
+  address_line_2 text,
+  city text,
+  county text,
+  postcode text,
   created_by uuid references auth.users(id),
   created_at timestamptz not null default timezone('utc', now()),
-  updated_at timestamptz not null default timezone('utc', now())
+  updated_at timestamptz not null default timezone('utc', now()),
+  check (
+    source is null
+    or source in (
+      'referral',
+      'cold_outreach',
+      'inbound_lead',
+      'social_media',
+      'networking',
+      'paid_ads',
+      'other'
+    )
+  )
 );
 
 create table if not exists public.contacts (
@@ -183,6 +205,10 @@ create unique index if not exists contacts_email_unique_when_present
 on public.contacts (lower(email))
 where email is not null;
 
+create unique index if not exists clients_companies_house_unique_when_present
+on public.clients (upper(companies_house_number))
+where companies_house_number is not null;
+
 create unique index if not exists candidates_email_unique_when_present
 on public.candidates (lower(email))
 where email is not null;
@@ -192,6 +218,8 @@ on public.contact_employments (contact_id)
 where is_primary and end_date is null;
 
 create index if not exists roles_client_id_idx on public.roles (client_id);
+create index if not exists clients_parent_client_id_idx on public.clients (parent_client_id);
+create index if not exists clients_account_manager_id_idx on public.clients (account_manager_id);
 create index if not exists applications_role_id_idx on public.applications (role_id);
 create index if not exists applications_candidate_id_idx on public.applications (candidate_id);
 create index if not exists contact_employments_contact_id_idx on public.contact_employments (contact_id);

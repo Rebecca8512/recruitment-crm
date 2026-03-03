@@ -1,15 +1,23 @@
+import Link from "next/link";
 import styles from "../entity-page.module.css";
 
 export default function ClientsPage() {
   return (
     <main className={styles.page}>
       <header className={styles.header}>
-        <p className={styles.eyebrow}>CRM</p>
-        <h1 className={styles.title}>Clients</h1>
-        <p className={styles.lead}>
-          Businesses you work with, including cold outreach prospects and active
-          accounts.
-        </p>
+        <div className={styles.headerRow}>
+          <div>
+            <p className={styles.eyebrow}>CRM</p>
+            <h1 className={styles.title}>Clients</h1>
+            <p className={styles.lead}>
+              Businesses you work with, including cold outreach prospects and
+              active accounts.
+            </p>
+          </div>
+          <Link href="/admin/clients/new" className={styles.actionLink}>
+            + Add Client
+          </Link>
+        </div>
       </header>
 
       <section className={styles.card}>
