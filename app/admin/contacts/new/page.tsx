@@ -138,11 +138,6 @@ export default function NewContactPage() {
       return;
     }
 
-    if (!clientId) {
-      setErrorMessage("Client name is required.");
-      return;
-    }
-
     if (!ownerUserId) {
       setErrorMessage("Unable to identify the logged-in agent.");
       return;
@@ -190,23 +185,27 @@ export default function NewContactPage() {
       return;
     }
 
-    const { error: employmentError } = await supabase.from("contact_employments").insert({
-      contact_id: insertedContact.id,
-      client_id: clientId,
-      job_title: jobTitle.trim() || null,
-      is_primary: isPrimaryContact,
-      created_by: ownerUserId,
-    });
+    if (clientId) {
+      const { error: employmentError } = await supabase
+        .from("contact_employments")
+        .insert({
+          contact_id: insertedContact.id,
+          client_id: clientId,
+          job_title: jobTitle.trim() || null,
+          is_primary: isPrimaryContact,
+          created_by: ownerUserId,
+        });
 
-    if (employmentError) {
-      await supabase.from("contacts").delete().eq("id", insertedContact.id);
-      setErrorMessage(
-        employmentError.message.includes("column")
-          ? "Contact employment schema is missing fields. Run latest CRM SQL patches and retry."
-          : employmentError.message,
-      );
-      setIsSaving(false);
-      return;
+      if (employmentError) {
+        await supabase.from("contacts").delete().eq("id", insertedContact.id);
+        setErrorMessage(
+          employmentError.message.includes("column")
+            ? "Contact employment schema is missing fields. Run latest CRM SQL patches and retry."
+            : employmentError.message,
+        );
+        setIsSaving(false);
+        return;
+      }
     }
 
     setSuccessMessage("Contact saved successfully.");
@@ -304,13 +303,12 @@ export default function NewContactPage() {
             </label>
 
             <label className={styles.field}>
-              <span className={styles.label}>Client Name *</span>
+              <span className={styles.label}>Client Name</span>
               <select
                 value={clientId}
                 onChange={(event) => setClientId(event.target.value)}
-                required
               >
-                <option value="">Select client</option>
+                <option value="">Unassigned</option>
                 {clientOptions.map((client) => (
                   <option key={client.id} value={client.id}>
                     {client.name}
