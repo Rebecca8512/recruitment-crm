@@ -82,6 +82,18 @@
   color: #0a5254;
 }
 
+.inlineTextLink {
+  margin-top: 0.6rem;
+  display: inline-flex;
+  color: #0a5254;
+  text-decoration: underline;
+  text-underline-offset: 0.15rem;
+}
+
+.inlineTextLink:hover {
+  color: #063f40;
+}
+
 .tableWrap {
   margin-top: 1rem;
   overflow-x: auto;

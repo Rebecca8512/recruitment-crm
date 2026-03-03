@@ -122,19 +122,11 @@ export default function ClientsPage() {
   return (
     <main className={styles.page}>
       <header className={styles.header}>
-        <div className={styles.headerRow}>
-          <div>
-            <p className={styles.eyebrow}>CRM</p>
-            <h1 className={styles.title}>Clients</h1>
-            <p className={styles.lead}>
-              Businesses you work with, including cold outreach prospects and
-              active accounts.
-            </p>
-          </div>
-          <Link href="/admin/clients/new" className={styles.actionLink}>
-            + Add Client
-          </Link>
-        </div>
+        <p className={styles.eyebrow}>CRM</p>
+        <h1 className={styles.title}>Clients</h1>
+        <Link href="/admin/clients/new" className={styles.inlineTextLink}>
+          Add new client
+        </Link>
       </header>
 
       <section className={styles.card}>
@@ -195,7 +187,7 @@ export default function ClientsPage() {
             </div>
           ) : (
             <p className={styles.infoText}>
-              No clients yet. Click <strong>+ Add Client</strong> to create your
+              No clients yet. Click <strong>Add new client</strong> to create your
               first record.
             </p>
           )
