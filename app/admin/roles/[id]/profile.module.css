@@ -47,8 +47,31 @@
   box-shadow: 0 18px 30px rgba(0, 15, 20, 0.08);
 }
 
-.detailsGrid {
+.detailsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.detailsTitle {
   margin: 0;
+  font-size: 1.15rem;
+}
+
+.editLink {
+  color: #0a5254;
+  text-decoration: underline;
+  text-underline-offset: 0.15rem;
+  font-size: 0.9rem;
+}
+
+.editLink:hover {
+  color: #063f40;
+}
+
+.detailsGrid {
+  margin: 0.9rem 0 0;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.8rem;

@@ -67,6 +67,9 @@ export default function EditClientPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [showDeleteWarning, setShowDeleteWarning] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [accountManagerId, setAccountManagerId] = useState("");
   const [accountManagerLabel, setAccountManagerLabel] = useState("");
@@ -270,6 +273,74 @@ export default function EditClientPage() {
     setTimeout(() => {
       router.push(`/admin/clients/${clientId}`);
     }, 500);
+  };
+
+  const handleDeleteClient = async () => {
+    if (!clientId || !UUID_PATTERN.test(clientId)) {
+      setDeleteError("Invalid client id.");
+      return;
+    }
+
+    setDeleteError("");
+    setIsDeleting(true);
+
+    const { error: rolesUnassignError } = await supabase
+      .from("roles")
+      .update({ client_id: null })
+      .eq("client_id", clientId);
+
+    if (rolesUnassignError) {
+      const requiresPatch =
+        rolesUnassignError.message.includes("null value") ||
+        rolesUnassignError.message.includes("not-null") ||
+        rolesUnassignError.message.includes("violates");
+
+      setDeleteError(
+        requiresPatch
+          ? "Delete blocked by old constraints. Run supabase/client_delete_unassign_patch.sql, then retry."
+          : rolesUnassignError.message,
+      );
+      setIsDeleting(false);
+      return;
+    }
+
+    const { error: employmentsUnassignError } = await supabase
+      .from("contact_employments")
+      .update({ client_id: null })
+      .eq("client_id", clientId);
+
+    if (employmentsUnassignError) {
+      const requiresPatch =
+        employmentsUnassignError.message.includes("null value") ||
+        employmentsUnassignError.message.includes("not-null") ||
+        employmentsUnassignError.message.includes("violates");
+
+      setDeleteError(
+        requiresPatch
+          ? "Delete blocked by old constraints. Run supabase/client_delete_unassign_patch.sql, then retry."
+          : employmentsUnassignError.message,
+      );
+      setIsDeleting(false);
+      return;
+    }
+
+    const { error } = await supabase.from("clients").delete().eq("id", clientId);
+
+    if (error) {
+      const requiresPatch =
+        error.message.includes("roles_client_id_fkey") ||
+        error.message.includes("contact_employments_client_id_fkey");
+
+      setDeleteError(
+        requiresPatch
+          ? "Delete blocked by old constraints. Run supabase/client_delete_unassign_patch.sql, then retry."
+          : error.message,
+      );
+      setIsDeleting(false);
+      return;
+    }
+
+    router.push("/admin/clients");
   };
 
   if (isLoading) {
@@ -488,7 +559,48 @@ export default function EditClientPage() {
           <Link href={`/admin/clients/${clientId ?? ""}`} className={styles.cancelButton}>
             Cancel
           </Link>
+          <button
+            type="button"
+            className={styles.subtleDeleteLink}
+            onClick={() => setShowDeleteWarning((value) => !value)}
+          >
+            Delete client
+          </button>
         </div>
+
+        {showDeleteWarning ? (
+          <div className={styles.deleteWarningCard}>
+            <p className={styles.deleteWarningTitle}>Delete this client?</p>
+            <p className={styles.deleteWarningText}>
+              This permanently removes the client profile. Contacts, roles, and
+              candidates are retained and become unassigned.
+            </p>
+            {deleteError ? (
+              <p className={styles.deleteErrorText}>{deleteError}</p>
+            ) : null}
+            <div className={styles.deleteActions}>
+              <button
+                type="button"
+                className={styles.confirmDeleteButton}
+                onClick={handleDeleteClient}
+                disabled={isDeleting}
+              >
+                {isDeleting ? "Deleting..." : "Delete permanently"}
+              </button>
+              <button
+                type="button"
+                className={styles.cancelDeleteButton}
+                onClick={() => {
+                  setShowDeleteWarning(false);
+                  setDeleteError("");
+                }}
+                disabled={isDeleting}
+              >
+                Keep client
+              </button>
+            </div>
+          </div>
+        ) : null}
       </form>
     </main>
   );

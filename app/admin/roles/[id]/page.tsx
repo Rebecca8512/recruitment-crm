@@ -172,6 +172,12 @@ export default function RoleProfilePage() {
       </header>
 
       <section className={styles.detailsCard}>
+        <div className={styles.detailsHeader}>
+          <h2 className={styles.detailsTitle}>Overview</h2>
+          <Link href={`/admin/roles/${role.id}/edit`} className={styles.editLink}>
+            Edit details
+          </Link>
+        </div>
         <dl className={styles.detailsGrid}>
           <div>
             <dt>Client</dt>

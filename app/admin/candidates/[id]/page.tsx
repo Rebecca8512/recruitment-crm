@@ -155,6 +155,15 @@ export default function CandidateProfilePage() {
       </header>
 
       <section className={styles.detailsCard}>
+        <div className={styles.detailsHeader}>
+          <h2 className={styles.detailsTitle}>Overview</h2>
+          <Link
+            href={`/admin/candidates/${candidate.id}/edit`}
+            className={styles.editLink}
+          >
+            Edit details
+          </Link>
+        </div>
         <dl className={styles.detailsGrid}>
           <div>
             <dt>Status</dt>

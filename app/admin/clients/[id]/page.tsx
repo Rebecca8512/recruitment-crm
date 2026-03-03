@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useParams } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/src/lib/supabase";
 import styles from "./profile.module.css";
@@ -31,16 +30,12 @@ const UUID_PATTERN =
 export default function ClientProfilePage() {
   const params = useParams<{ id?: string }>();
   const clientId = Array.isArray(params.id) ? params.id[0] : params.id;
-  const router = useRouter();
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
 
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [client, setClient] = useState<ClientRecord | null>(null);
   const [statusLabel, setStatusLabel] = useState<string>("Unassigned");
-  const [showDeleteWarning, setShowDeleteWarning] = useState(false);
-  const [deleteError, setDeleteError] = useState("");
-  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -100,75 +95,6 @@ export default function ClientProfilePage() {
       isMounted = false;
     };
   }, [clientId, supabase]);
-
-  const handleDeleteClient = async () => {
-    if (!clientId || !UUID_PATTERN.test(clientId)) {
-      setDeleteError("Invalid client id.");
-      return;
-    }
-
-    setDeleteError("");
-    setIsDeleting(true);
-
-    // Safety first: explicitly unassign relations before deleting the client.
-    const { error: rolesUnassignError } = await supabase
-      .from("roles")
-      .update({ client_id: null })
-      .eq("client_id", clientId);
-
-    if (rolesUnassignError) {
-      const requiresPatch =
-        rolesUnassignError.message.includes("null value") ||
-        rolesUnassignError.message.includes("not-null") ||
-        rolesUnassignError.message.includes("violates");
-
-      setDeleteError(
-        requiresPatch
-          ? "Delete blocked by old constraints. Run supabase/client_delete_unassign_patch.sql, then retry."
-          : rolesUnassignError.message,
-      );
-      setIsDeleting(false);
-      return;
-    }
-
-    const { error: employmentsUnassignError } = await supabase
-      .from("contact_employments")
-      .update({ client_id: null })
-      .eq("client_id", clientId);
-
-    if (employmentsUnassignError) {
-      const requiresPatch =
-        employmentsUnassignError.message.includes("null value") ||
-        employmentsUnassignError.message.includes("not-null") ||
-        employmentsUnassignError.message.includes("violates");
-
-      setDeleteError(
-        requiresPatch
-          ? "Delete blocked by old constraints. Run supabase/client_delete_unassign_patch.sql, then retry."
-          : employmentsUnassignError.message,
-      );
-      setIsDeleting(false);
-      return;
-    }
-
-    const { error } = await supabase.from("clients").delete().eq("id", clientId);
-
-    if (error) {
-      const requiresPatch =
-        error.message.includes("roles_client_id_fkey") ||
-        error.message.includes("contact_employments_client_id_fkey");
-
-      setDeleteError(
-        requiresPatch
-          ? "Delete blocked by old constraints. Run supabase/client_delete_unassign_patch.sql, then retry."
-          : error.message,
-      );
-      setIsDeleting(false);
-      return;
-    }
-
-    router.push("/admin/clients");
-  };
 
   if (isLoading) {
     return (
@@ -254,49 +180,6 @@ export default function ClientProfilePage() {
           </div>
         </dl>
 
-        <div className={styles.deleteSection}>
-          <button
-            type="button"
-            className={styles.deleteLink}
-            onClick={() => setShowDeleteWarning((value) => !value)}
-          >
-            Delete client
-          </button>
-
-          {showDeleteWarning ? (
-            <div className={styles.deleteWarningCard}>
-              <p className={styles.deleteWarningTitle}>Delete this client?</p>
-              <p className={styles.deleteWarningText}>
-                This permanently removes the client profile. Contacts, roles, and
-                candidates are retained and become unassigned.
-              </p>
-              {deleteError ? (
-                <p className={styles.deleteErrorText}>{deleteError}</p>
-              ) : null}
-              <div className={styles.deleteActions}>
-                <button
-                  type="button"
-                  className={styles.confirmDeleteButton}
-                  onClick={handleDeleteClient}
-                  disabled={isDeleting}
-                >
-                  {isDeleting ? "Deleting..." : "Delete permanently"}
-                </button>
-                <button
-                  type="button"
-                  className={styles.cancelDeleteButton}
-                  onClick={() => {
-                    setShowDeleteWarning(false);
-                    setDeleteError("");
-                  }}
-                  disabled={isDeleting}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : null}
-        </div>
       </section>
     </main>
   );
