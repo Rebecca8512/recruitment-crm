@@ -1,0 +1,152 @@
+.shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  background:
+    radial-gradient(circle at 88% 84%, rgba(249, 115, 22, 0.15), transparent 36%),
+    radial-gradient(circle at 16% 18%, rgba(20, 184, 166, 0.12), transparent 34%),
+    #f7f2e9;
+}
+
+.sidebar {
+  padding: 1.25rem 1rem;
+  border-right: 1px solid rgba(0, 15, 20, 0.12);
+  background: linear-gradient(175deg, #00181b, #08363b);
+  color: #f6efe0;
+}
+
+.sidebarHeader {
+  margin-bottom: 1.25rem;
+}
+
+.brandEyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.72rem;
+  color: #f7bb72;
+}
+
+.brandTitle {
+  margin: 0.4rem 0 0;
+  font-size: 1.9rem;
+  color: #fff7e7;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.navItem {
+  display: block;
+  padding: 0.68rem 0.75rem;
+  border-radius: 0.6rem;
+  color: #d3e5de;
+  text-decoration: none;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.navItem:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff7e7;
+}
+
+.navItemActive {
+  background: rgba(247, 187, 114, 0.2);
+  color: #fff7e7;
+}
+
+.sidebarFooter {
+  margin-top: 1.3rem;
+  font-size: 0.82rem;
+  color: #b5cbc4;
+  overflow-wrap: anywhere;
+}
+
+.sidebarFooter span {
+  color: #fff7e7;
+}
+
+.contentArea {
+  display: flex;
+  flex-direction: column;
+}
+
+.topBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.4rem;
+}
+
+.websiteLink {
+  color: #0a5254;
+  text-decoration: underline;
+  text-underline-offset: 0.15rem;
+}
+
+.websiteLink:hover {
+  color: #063f40;
+}
+
+.signOutButton {
+  border: 1px solid rgba(0, 15, 20, 0.2);
+  border-radius: 0.62rem;
+  background: #ffffff;
+  color: #001418;
+  padding: 0.58rem 0.86rem;
+  cursor: pointer;
+}
+
+.signOutButton:hover {
+  border-color: #0a9396;
+  color: #0a5254;
+}
+
+.pageContent {
+  padding: 0 1.4rem 1.4rem;
+}
+
+.loadingWrap {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: #f7f2e9;
+}
+
+.loadingText {
+  color: #2d3d42;
+}
+
+@media (max-width: 960px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    border-right: 0;
+    border-bottom: 1px solid rgba(0, 15, 20, 0.12);
+    padding: 1rem;
+  }
+
+  .nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .navItem {
+    width: calc(50% - 0.2rem);
+  }
+
+  .sidebarFooter {
+    margin-top: 0.8rem;
+  }
+
+  .topBar {
+    padding-top: 0.8rem;
+    padding-bottom: 0.8rem;
+  }
+}
