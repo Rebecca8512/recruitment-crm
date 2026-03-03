@@ -156,3 +156,16 @@
   color: #0a5254;
   background: #c5e7dc;
 }
+
+.tableEntityLink {
+  color: inherit;
+  text-decoration-line: underline;
+  text-decoration-color: #c5e7dc;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.14rem;
+}
+
+.tableEntityLink:hover {
+  color: inherit;
+  text-decoration-color: #9fd7c5;
+}

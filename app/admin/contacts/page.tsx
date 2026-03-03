@@ -220,6 +220,33 @@ export default function ContactsPage() {
     return output;
   }, [clientNameById, employmentsByContact]);
 
+  const clientIdByContact = useMemo(() => {
+    const output: Record<string, string> = {};
+
+    for (const [contactId, rows] of Object.entries(employmentsByContact)) {
+      const prioritized = [...rows].sort((a, b) => {
+        const aPrimary = a.is_primary && !a.end_date ? 1 : 0;
+        const bPrimary = b.is_primary && !b.end_date ? 1 : 0;
+        if (aPrimary !== bPrimary) return bPrimary - aPrimary;
+
+        const aActive = !a.end_date ? 1 : 0;
+        const bActive = !b.end_date ? 1 : 0;
+        if (aActive !== bActive) return bActive - aActive;
+
+        const aStart = a.start_date ? new Date(a.start_date).getTime() : 0;
+        const bStart = b.start_date ? new Date(b.start_date).getTime() : 0;
+        return bStart - aStart;
+      });
+
+      const clientId = prioritized[0]?.client_id;
+      if (clientId && clientNameById[clientId]) {
+        output[contactId] = clientId;
+      }
+    }
+
+    return output;
+  }, [clientNameById, employmentsByContact]);
+
   const statusByContact = useMemo(() => {
     const output: Record<string, string> = {};
 
@@ -444,7 +471,19 @@ export default function ContactsPage() {
                           contact.phone ||
                           "-"}
                       </td>
-                      <td>{displayCompanyByContact[contact.id] || "-"}</td>
+                      <td>
+                        {clientIdByContact[contact.id] &&
+                        displayCompanyByContact[contact.id] ? (
+                          <Link
+                            href={`/admin/clients/${clientIdByContact[contact.id]}`}
+                            className={styles.tableEntityLink}
+                          >
+                            {displayCompanyByContact[contact.id]}
+                          </Link>
+                        ) : (
+                          "-"
+                        )}
+                      </td>
                       <td>
                         <span className={styles.statusBadge}>
                           {statusByContact[contact.id] ?? "Unassigned"}

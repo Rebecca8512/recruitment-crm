@@ -390,7 +390,18 @@ export default function RolesPage() {
                   {filteredRoles.map((role) => (
                     <tr key={role.id}>
                       <td>{role.title}</td>
-                      <td>{(role.client_id && clientNameById[role.client_id]) || "-"}</td>
+                      <td>
+                        {role.client_id && clientNameById[role.client_id] ? (
+                          <Link
+                            href={`/admin/clients/${role.client_id}`}
+                            className={styles.tableEntityLink}
+                          >
+                            {clientNameById[role.client_id]}
+                          </Link>
+                        ) : (
+                          "-"
+                        )}
+                      </td>
                       <td>{formatJobType(role.job_type)}</td>
                       <td>
                         <span className={styles.statusBadge}>
