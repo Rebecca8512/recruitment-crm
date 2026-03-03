@@ -372,14 +372,10 @@ export default function ClientsPage() {
       <header className={styles.header}>
         <p className={styles.eyebrow}>CRM</p>
         <h1 className={styles.title}>Clients</h1>
-        <Link href="/admin/clients/new" className={styles.inlineTextLink}>
-          Add new client
-        </Link>
-      </header>
-
-      <section className={styles.card}>
-        <h2 className={styles.cardTitle}>Client CRM</h2>
-        <div className={styles.searchRow}>
+        <div className={styles.headerControls}>
+          <Link href="/admin/clients/new" className={styles.inlineTextLink}>
+            Add new client
+          </Link>
           <EntitySearch
             options={searchOptions}
             selected={selectedSearchOption}
@@ -388,10 +384,9 @@ export default function ClientsPage() {
             placeholder="Search"
           />
         </div>
-        <p className={styles.lead}>
-          Quick view of active client records with direct access to profile pages.
-        </p>
+      </header>
 
+      <section className={styles.card}>
         {isLoading ? <p className={styles.infoText}>Loading clients...</p> : null}
         {errorMessage ? <p className={styles.errorText}>{errorMessage}</p> : null}
 

@@ -8,6 +8,14 @@
   margin-bottom: 0.2rem;
 }
 
+.headerControls {
+  margin-top: 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
 .headerRow {
   display: flex;
   justify-content: space-between;
@@ -56,10 +64,6 @@
 .errorText {
   margin: 0.8rem 0 0;
   color: #8f1b13;
-}
-
-.searchRow {
-  margin-top: 0.8rem;
 }
 
 .list {
