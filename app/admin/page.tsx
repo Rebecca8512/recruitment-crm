@@ -110,8 +110,7 @@ export default function AdminLoginPage() {
         <div className={styles.card}>
           <h2 className={styles.cardTitle}>Sign in</h2>
           <p className={styles.cardSubtitle}>
-            Use your admin email and password. Registration is disabled on this
-            screen.
+            Whitmore Recruitment. Admin access only.
           </p>
 
           <form onSubmit={handleSubmit} className={styles.form}>
