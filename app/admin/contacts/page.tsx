@@ -6,6 +6,7 @@ import {
   EntitySearch,
   type EntitySearchOption,
 } from "@/src/components/search/entity-search";
+import { StatusFilter } from "@/src/components/filters/status-filter";
 import { getSupabaseBrowserClient } from "@/src/lib/supabase";
 import styles from "../entity-page.module.css";
 
@@ -53,6 +54,12 @@ type ApplicationRow = {
   role_id: string;
 };
 
+const CONTACT_STATUS_OPTIONS = [
+  { value: "Assigned", label: "Assigned" },
+  { value: "Previous", label: "Previous" },
+  { value: "Unassigned", label: "Unassigned" },
+] as const;
+
 export default function ContactsPage() {
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
 
@@ -66,6 +73,7 @@ export default function ContactsPage() {
   const [applications, setApplications] = useState<ApplicationRow[]>([]);
   const [selectedSearchOption, setSelectedSearchOption] =
     useState<EntitySearchOption | null>(null);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>(["Assigned"]);
 
   useEffect(() => {
     let isMounted = true;
@@ -391,10 +399,14 @@ export default function ContactsPage() {
   }, [candidates, clientNameById, clients, contacts, displayCompanyByContact, roles]);
 
   const filteredContacts = useMemo(() => {
-    if (!selectedSearchOption) return contacts;
+    const statusFiltered = contacts.filter((contact) =>
+      selectedStatuses.includes(statusByContact[contact.id] ?? "Unassigned"),
+    );
+
+    if (!selectedSearchOption) return statusFiltered;
 
     if (selectedSearchOption.entityType === "contact") {
-      return contacts.filter(
+      return statusFiltered.filter(
         (contact) => contact.id === selectedSearchOption.entityId,
       );
     }
@@ -402,24 +414,26 @@ export default function ContactsPage() {
     if (selectedSearchOption.entityType === "client") {
       const set = contactIdsByClient[selectedSearchOption.entityId];
       if (!set || set.size === 0) return [];
-      return contacts.filter((contact) => set.has(contact.id));
+      return statusFiltered.filter((contact) => set.has(contact.id));
     }
 
     if (selectedSearchOption.entityType === "role") {
       const set = contactIdsByRole[selectedSearchOption.entityId];
       if (!set || set.size === 0) return [];
-      return contacts.filter((contact) => set.has(contact.id));
+      return statusFiltered.filter((contact) => set.has(contact.id));
     }
 
     const set = contactIdsByCandidate[selectedSearchOption.entityId];
     if (!set || set.size === 0) return [];
-    return contacts.filter((contact) => set.has(contact.id));
+    return statusFiltered.filter((contact) => set.has(contact.id));
   }, [
     contactIdsByCandidate,
     contactIdsByClient,
     contactIdsByRole,
     contacts,
+    selectedStatuses,
     selectedSearchOption,
+    statusByContact,
   ]);
 
   return (
@@ -437,6 +451,15 @@ export default function ContactsPage() {
             onSelect={(option) => setSelectedSearchOption(option)}
             onClear={() => setSelectedSearchOption(null)}
             placeholder="Search"
+          />
+          <StatusFilter
+            options={CONTACT_STATUS_OPTIONS.map((option) => ({
+              value: option.value,
+              label: option.label,
+            }))}
+            selectedValues={selectedStatuses}
+            onChange={setSelectedStatuses}
+            onReset={() => setSelectedStatuses(["Assigned"])}
           />
         </div>
       </header>

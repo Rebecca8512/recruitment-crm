@@ -6,6 +6,7 @@ import {
   EntitySearch,
   type EntitySearchOption,
 } from "@/src/components/search/entity-search";
+import { StatusFilter } from "@/src/components/filters/status-filter";
 import { getSupabaseBrowserClient } from "@/src/lib/supabase";
 import styles from "../entity-page.module.css";
 
@@ -78,6 +79,9 @@ export default function ClientsPage() {
   const [applications, setApplications] = useState<ApplicationRow[]>([]);
   const [selectedSearchOption, setSelectedSearchOption] =
     useState<EntitySearchOption | null>(null);
+  const [statusOptions, setStatusOptions] = useState<StatusRow[]>([]);
+  const [defaultStatusCodes, setDefaultStatusCodes] = useState<string[]>([]);
+  const [selectedStatusCodes, setSelectedStatusCodes] = useState<string[]>([]);
 
   useEffect(() => {
     let isMounted = true;
@@ -169,6 +173,18 @@ export default function ClientsPage() {
         acc[row.code] = row.label;
         return acc;
       }, {});
+      const statusRows = (statusData ?? []) as StatusRow[];
+      const activeStatusCodes = statusRows
+        .filter(
+          (row) =>
+            row.code === "active_client" ||
+            row.label.trim().toLowerCase() === "active client",
+        )
+        .map((row) => row.code);
+      const defaults =
+        activeStatusCodes.length > 0
+          ? activeStatusCodes
+          : statusRows.map((row) => row.code);
 
       const roleRows = (rolesData ?? []) as RoleRow[];
       const openRoles: Record<string, number> = {};
@@ -218,6 +234,9 @@ export default function ClientsPage() {
       setEmployments((employmentsData ?? []) as EmploymentRow[]);
       setCandidates((candidatesData ?? []) as CandidateRow[]);
       setApplications((applicationsData ?? []) as ApplicationRow[]);
+      setStatusOptions(statusRows);
+      setDefaultStatusCodes(defaults);
+      setSelectedStatusCodes(defaults);
       setIsLoading(false);
     };
 
@@ -368,32 +387,39 @@ export default function ClientsPage() {
   }, [candidates, clientNameById, clients, contacts, displayCompanyByContact, roles]);
 
   const filteredClients = useMemo(() => {
-    if (!selectedSearchOption) return clients;
+    const statusFiltered = clients.filter((client) =>
+      client.status_code ? selectedStatusCodes.includes(client.status_code) : false,
+    );
+
+    if (!selectedSearchOption) return statusFiltered;
 
     if (selectedSearchOption.entityType === "client") {
-      return clients.filter((client) => client.id === selectedSearchOption.entityId);
+      return statusFiltered.filter(
+        (client) => client.id === selectedSearchOption.entityId,
+      );
     }
 
     if (selectedSearchOption.entityType === "role") {
       const role = roleById[selectedSearchOption.entityId];
       if (!role?.client_id) return [];
-      return clients.filter((client) => client.id === role.client_id);
+      return statusFiltered.filter((client) => client.id === role.client_id);
     }
 
     if (selectedSearchOption.entityType === "contact") {
       const set = clientIdsByContact[selectedSearchOption.entityId];
       if (!set || set.size === 0) return [];
-      return clients.filter((client) => set.has(client.id));
+      return statusFiltered.filter((client) => set.has(client.id));
     }
 
     const set = clientIdsByCandidate[selectedSearchOption.entityId];
     if (!set || set.size === 0) return [];
-    return clients.filter((client) => set.has(client.id));
+    return statusFiltered.filter((client) => set.has(client.id));
   }, [
     clientIdsByCandidate,
     clientIdsByContact,
     clients,
     roleById,
+    selectedStatusCodes,
     selectedSearchOption,
   ]);
 
@@ -412,6 +438,12 @@ export default function ClientsPage() {
             onSelect={(option) => setSelectedSearchOption(option)}
             onClear={() => setSelectedSearchOption(null)}
             placeholder="Search"
+          />
+          <StatusFilter
+            options={statusOptions.map((row) => ({ value: row.code, label: row.label }))}
+            selectedValues={selectedStatusCodes}
+            onChange={setSelectedStatusCodes}
+            onReset={() => setSelectedStatusCodes(defaultStatusCodes)}
           />
         </div>
       </header>

@@ -1,0 +1,84 @@
+.root {
+  position: relative;
+  width: min(100%, 220px);
+}
+
+.trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border: 1px solid rgba(0, 15, 20, 0.24);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #102429;
+  padding: 0.56rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.93rem;
+}
+
+.trigger:hover {
+  border-color: #0a9396;
+}
+
+.triggerOpen {
+  border-color: #0a9396;
+  box-shadow: 0 0 0 3px rgba(10, 147, 150, 0.16);
+}
+
+.triggerCount {
+  font-size: 0.8rem;
+  color: #4f676d;
+}
+
+.dropdown {
+  position: absolute;
+  z-index: 25;
+  top: calc(100% + 0.35rem);
+  left: 0;
+  right: 0;
+  border: 1px solid rgba(0, 15, 20, 0.14);
+  border-radius: 0.75rem;
+  background: #fffefb;
+  box-shadow: 0 18px 28px rgba(0, 15, 20, 0.18);
+  padding: 0.55rem;
+}
+
+.optionList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.optionRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #173136;
+  font-size: 0.9rem;
+}
+
+.optionRow input {
+  width: 0.98rem;
+  height: 0.98rem;
+  accent-color: #0a9396;
+}
+
+.resetButton {
+  margin-top: 0.55rem;
+  border: 0;
+  background: transparent;
+  color: #0a5254;
+  text-decoration: underline;
+  text-underline-offset: 0.15rem;
+  padding: 0;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.resetButton:hover {
+  color: #063f40;
+}
