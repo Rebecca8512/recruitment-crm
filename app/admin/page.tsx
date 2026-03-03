@@ -96,11 +96,14 @@ export default function AdminLoginPage() {
         <p className={styles.subtitle}>
           Secure access for operations, candidate pipelines, and client records.
         </p>
-        <div className={styles.pillRow}>
-          <span className={styles.pill}>Supabase Auth</span>
-          <span className={styles.pill}>RLS Enabled</span>
-          <span className={styles.pill}>Admin Access</span>
-        </div>
+        <a
+          href="https://whitmorerecruitment.co.uk"
+          target="_blank"
+          rel="noreferrer"
+          className={styles.websiteLink}
+        >
+          Visit main website
+        </a>
       </section>
 
       <section className={styles.formPanel}>

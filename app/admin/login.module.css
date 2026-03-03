@@ -40,22 +40,17 @@
   color: #bcd5ce;
 }
 
-.pillRow {
-  margin-top: 2rem;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.65rem;
+.websiteLink {
+  margin-top: 1.75rem;
+  display: inline-flex;
+  color: #f7bb72;
+  text-decoration: underline;
+  text-underline-offset: 0.18rem;
+  font-size: 0.96rem;
 }
 
-.pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.4rem 0.75rem;
-  border: 1px solid rgba(255, 247, 231, 0.22);
-  border-radius: 999px;
-  background: rgba(255, 247, 231, 0.08);
-  color: #fff7e7;
-  font-size: 0.82rem;
+.websiteLink:hover {
+  color: #ffd29c;
 }
 
 .formPanel {
