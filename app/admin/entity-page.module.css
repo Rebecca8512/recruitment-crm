@@ -48,6 +48,16 @@
   font-size: 1.15rem;
 }
 
+.infoText {
+  margin: 0.8rem 0 0;
+  color: #2a3d41;
+}
+
+.errorText {
+  margin: 0.8rem 0 0;
+  color: #8f1b13;
+}
+
 .list {
   margin: 0.7rem 0 0;
   padding-left: 1.1rem;
@@ -70,4 +80,59 @@
 .actionLink:hover {
   border-color: #0a9396;
   color: #0a5254;
+}
+
+.tableWrap {
+  margin-top: 1rem;
+  overflow-x: auto;
+}
+
+.dataTable {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 640px;
+}
+
+.dataTable th {
+  text-align: left;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #345056;
+  padding: 0.7rem;
+  border-bottom: 1px solid rgba(0, 15, 20, 0.14);
+}
+
+.dataTable td {
+  padding: 0.75rem 0.7rem;
+  border-bottom: 1px solid rgba(0, 15, 20, 0.08);
+  color: #1c3237;
+  vertical-align: middle;
+}
+
+.statusBadge {
+  display: inline-flex;
+  padding: 0.24rem 0.58rem;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 15, 20, 0.14);
+  background: #f3faf9;
+  color: #124346;
+  font-size: 0.82rem;
+}
+
+.tableActionLink {
+  display: inline-flex;
+  border: 1px solid rgba(0, 15, 20, 0.2);
+  border-radius: 0.58rem;
+  background: #ffffff;
+  color: #001418;
+  padding: 0.4rem 0.68rem;
+  text-decoration: none;
+  font-size: 0.88rem;
+}
+
+.tableActionLink:hover {
+  border-color: #0a9396;
+  color: #0a5254;
+  background: #c5e7dc;
 }
