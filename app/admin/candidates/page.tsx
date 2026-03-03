@@ -1,3 +1,4 @@
+import Link from "next/link";
 import styles from "../entity-page.module.css";
 
 export default function CandidatesPage() {
@@ -6,10 +7,9 @@ export default function CandidatesPage() {
       <header className={styles.header}>
         <p className={styles.eyebrow}>CRM</p>
         <h1 className={styles.title}>Candidates</h1>
-        <p className={styles.lead}>
-          Candidate records can exist independently from roles, and each
-          candidate can be linked to multiple roles through applications.
-        </p>
+        <Link href="/admin/candidates/new" className={styles.inlineTextLink}>
+          Add new candidate
+        </Link>
       </header>
 
       <section className={styles.card}>

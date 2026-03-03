@@ -1,3 +1,4 @@
+import Link from "next/link";
 import styles from "../entity-page.module.css";
 
 export default function RolesPage() {
@@ -6,10 +7,9 @@ export default function RolesPage() {
       <header className={styles.header}>
         <p className={styles.eyebrow}>CRM</p>
         <h1 className={styles.title}>Roles</h1>
-        <p className={styles.lead}>
-          Jobs opened by clients. A client can own multiple roles, each with its
-          own pipeline and fee tracking fields.
-        </p>
+        <Link href="/admin/roles/new" className={styles.inlineTextLink}>
+          Add new role
+        </Link>
       </header>
 
       <section className={styles.card}>

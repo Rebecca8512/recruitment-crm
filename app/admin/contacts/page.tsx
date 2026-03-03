@@ -1,3 +1,4 @@
+import Link from "next/link";
 import styles from "../entity-page.module.css";
 
 export default function ContactsPage() {
@@ -6,10 +7,9 @@ export default function ContactsPage() {
       <header className={styles.header}>
         <p className={styles.eyebrow}>CRM</p>
         <h1 className={styles.title}>Contacts</h1>
-        <p className={styles.lead}>
-          People within each client account. Employment history is tracked so a
-          contact can move between companies over time.
-        </p>
+        <Link href="/admin/contacts/new" className={styles.inlineTextLink}>
+          Add new contact
+        </Link>
       </header>
 
       <section className={styles.card}>

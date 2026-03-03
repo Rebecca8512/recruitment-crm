@@ -58,6 +58,10 @@
   color: #8f1b13;
 }
 
+.searchRow {
+  margin-top: 0.8rem;
+}
+
 .list {
   margin: 0.7rem 0 0;
   padding-left: 1.1rem;
