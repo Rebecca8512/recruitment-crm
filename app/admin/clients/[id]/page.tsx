@@ -75,9 +75,52 @@ type ClientContactRow = {
   lastActivity: string;
 };
 
+type RoleStatusRecord = {
+  code: string;
+  label: string;
+};
+
+type RoleRecord = {
+  id: string;
+  title: string;
+  contact_id: string | null;
+  target_date: string | null;
+  status_code: string;
+  job_type: string;
+  salary_text: string | null;
+  expected_revenue_per_position: string | null;
+  total_expected_revenue: string | null;
+  actual_revenue: string | null;
+  notes: string | null;
+  updated_at: string;
+};
+
+type ClientRoleRow = {
+  id: string;
+  title: string;
+  contactName: string | null;
+  targetDate: string | null;
+  statusCode: string;
+  jobType: string;
+  salaryText: string | null;
+  expectedRevenuePerPosition: string | null;
+  totalExpectedRevenue: string | null;
+  actualRevenue: string | null;
+  notes: string | null;
+  lastActivity: string;
+};
+
 const TABS = ["Overview", "Contacts", "Roles", "Candidates", "Files"] as const;
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function formatJobType(value: string) {
+  if (!value) return "-";
+  return value
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
 
 export default function ClientProfilePage() {
   const params = useParams<{ id?: string }>();
@@ -91,7 +134,10 @@ export default function ClientProfilePage() {
   const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>("Overview");
   const [employmentRows, setEmploymentRows] = useState<EmploymentRecord[]>([]);
   const [contactRows, setContactRows] = useState<ContactRecord[]>([]);
+  const [roleRows, setRoleRows] = useState<RoleRecord[]>([]);
+  const [roleStatusMap, setRoleStatusMap] = useState<Record<string, string>>({});
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
+  const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -107,6 +153,8 @@ export default function ClientProfilePage() {
         { data: clientData, error: clientError },
         { data: statuses },
         { data: employmentsData, error: employmentsError },
+        { data: rolesData, error: rolesError },
+        { data: roleStatusesData, error: roleStatusesError },
       ] =
         await Promise.all([
           supabase
@@ -121,6 +169,14 @@ export default function ClientProfilePage() {
             .from("contact_employments")
             .select("id,contact_id,job_title,is_primary,start_date,end_date,updated_at")
             .eq("client_id", clientId),
+          supabase
+            .from("roles")
+            .select(
+              "id,title,contact_id,target_date,status_code,job_type,salary_text,expected_revenue_per_position,total_expected_revenue,actual_revenue,notes,updated_at",
+            )
+            .eq("client_id", clientId)
+            .order("updated_at", { ascending: false }),
+          supabase.from("role_statuses").select("code,label"),
         ]);
 
       if (!isMounted) return;
@@ -139,6 +195,18 @@ export default function ClientProfilePage() {
 
       if (employmentsError) {
         setErrorMessage(employmentsError.message);
+        setIsLoading(false);
+        return;
+      }
+
+      if (rolesError) {
+        setErrorMessage(rolesError.message);
+        setIsLoading(false);
+        return;
+      }
+
+      if (roleStatusesError) {
+        setErrorMessage(roleStatusesError.message);
         setIsLoading(false);
         return;
       }
@@ -172,6 +240,12 @@ export default function ClientProfilePage() {
         acc[row.code] = row.label;
         return acc;
       }, {});
+      const roleStatuses = ((roleStatusesData ?? []) as RoleStatusRecord[]).reduce<
+        Record<string, string>
+      >((acc, row) => {
+        acc[row.code] = row.label;
+        return acc;
+      }, {});
 
       setClient(clientData);
       setStatusLabel(
@@ -181,6 +255,8 @@ export default function ClientProfilePage() {
       );
       setEmploymentRows(employments);
       setContactRows(contacts);
+      setRoleRows((rolesData ?? []) as RoleRecord[]);
+      setRoleStatusMap(roleStatuses);
       setIsLoading(false);
     };
 
@@ -254,6 +330,44 @@ export default function ClientProfilePage() {
       clientContacts.find((contact) => contact.id === effectiveSelectedContactId) ?? null
     );
   }, [clientContacts, effectiveSelectedContactId]);
+
+  const clientRoles = useMemo<ClientRoleRow[]>(() => {
+    const contactNameById = contactRows.reduce<Record<string, string>>((acc, contact) => {
+      acc[contact.id] = `${contact.first_name} ${contact.last_name}`.trim();
+      return acc;
+    }, {});
+
+    return roleRows
+      .map((role) => ({
+        id: role.id,
+        title: role.title,
+        contactName: role.contact_id ? (contactNameById[role.contact_id] ?? null) : null,
+        targetDate: role.target_date,
+        statusCode: role.status_code,
+        jobType: role.job_type,
+        salaryText: role.salary_text,
+        expectedRevenuePerPosition: role.expected_revenue_per_position,
+        totalExpectedRevenue: role.total_expected_revenue,
+        actualRevenue: role.actual_revenue,
+        notes: role.notes,
+        lastActivity: role.updated_at,
+      }))
+      .sort(
+        (a, b) =>
+          new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime(),
+      );
+  }, [contactRows, roleRows]);
+
+  const effectiveSelectedRoleId = useMemo(() => {
+    if (clientRoles.length === 0) return null;
+    const hasSelected = clientRoles.some((role) => role.id === selectedRoleId);
+    return hasSelected ? selectedRoleId : clientRoles[0].id;
+  }, [clientRoles, selectedRoleId]);
+
+  const selectedRole = useMemo(() => {
+    if (!effectiveSelectedRoleId) return null;
+    return clientRoles.find((role) => role.id === effectiveSelectedRoleId) ?? null;
+  }, [clientRoles, effectiveSelectedRoleId]);
 
   if (isLoading) {
     return (
@@ -541,7 +655,146 @@ export default function ClientProfilePage() {
         </>
       ) : null}
 
-      {activeTab !== "Overview" && activeTab !== "Contacts" ? (
+      {activeTab === "Roles" ? (
+        <>
+          <section className={styles.detailsCard}>
+            <div className={styles.detailsHeader}>
+              <h2 className={styles.detailsTitle}>Roles</h2>
+            </div>
+            {clientRoles.length > 0 ? (
+              <div className={styles.tableWrap}>
+                <table className={styles.dataTable}>
+                  <thead>
+                    <tr>
+                      <th>Role Title</th>
+                      <th>Contact</th>
+                      <th>Status</th>
+                      <th>Job Type</th>
+                      <th>Target Date</th>
+                      <th>Expected Revenue</th>
+                      <th>Last Activity</th>
+                      <th>Profile</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {clientRoles.map((role) => (
+                      <tr
+                        key={role.id}
+                        className={
+                          effectiveSelectedRoleId === role.id ? styles.tableRowActive : ""
+                        }
+                      >
+                        <td>
+                          <button
+                            type="button"
+                            className={styles.rowSelectButton}
+                            onClick={() => setSelectedRoleId(role.id)}
+                          >
+                            {role.title}
+                          </button>
+                        </td>
+                        <td>{role.contactName || "-"}</td>
+                        <td>{roleStatusMap[role.statusCode] ?? role.statusCode}</td>
+                        <td>{formatJobType(role.jobType)}</td>
+                        <td>
+                          {role.targetDate
+                            ? new Date(role.targetDate).toLocaleDateString("en-GB")
+                            : "-"}
+                        </td>
+                        <td>
+                          {role.totalExpectedRevenue ||
+                            role.expectedRevenuePerPosition ||
+                            "-"}
+                        </td>
+                        <td>
+                          {new Date(role.lastActivity).toLocaleDateString("en-GB")}
+                        </td>
+                        <td>
+                          <Link
+                            href={`/admin/roles/${role.id}`}
+                            className={styles.tableActionLink}
+                          >
+                            Open Profile
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className={styles.infoText}>No roles linked to this client.</p>
+            )}
+          </section>
+
+          <section className={styles.detailsCard}>
+            <div className={styles.detailsHeader}>
+              <h2 className={styles.detailsTitle}>Role Details</h2>
+              {selectedRole ? (
+                <Link href={`/admin/roles/${selectedRole.id}`} className={styles.editLink}>
+                  Open full profile
+                </Link>
+              ) : null}
+            </div>
+            {selectedRole ? (
+              <dl className={styles.detailsGrid}>
+                <div>
+                  <dt>Role Title</dt>
+                  <dd>{selectedRole.title}</dd>
+                </div>
+                <div>
+                  <dt>Contact</dt>
+                  <dd>{selectedRole.contactName || "-"}</dd>
+                </div>
+                <div>
+                  <dt>Status</dt>
+                  <dd>{roleStatusMap[selectedRole.statusCode] ?? selectedRole.statusCode}</dd>
+                </div>
+                <div>
+                  <dt>Job Type</dt>
+                  <dd>{formatJobType(selectedRole.jobType)}</dd>
+                </div>
+                <div>
+                  <dt>Target Date</dt>
+                  <dd>
+                    {selectedRole.targetDate
+                      ? new Date(selectedRole.targetDate).toLocaleDateString("en-GB")
+                      : "-"}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Salary</dt>
+                  <dd>{selectedRole.salaryText || "-"}</dd>
+                </div>
+                <div>
+                  <dt>Expected Revenue Per Position</dt>
+                  <dd>{selectedRole.expectedRevenuePerPosition || "-"}</dd>
+                </div>
+                <div>
+                  <dt>Total Expected Revenue</dt>
+                  <dd>{selectedRole.totalExpectedRevenue || "-"}</dd>
+                </div>
+                <div>
+                  <dt>Actual Revenue</dt>
+                  <dd>{selectedRole.actualRevenue || "-"}</dd>
+                </div>
+                <div>
+                  <dt>Last Activity</dt>
+                  <dd>{new Date(selectedRole.lastActivity).toLocaleDateString("en-GB")}</dd>
+                </div>
+                <div className={styles.notesBlockInline}>
+                  <dt>Notes</dt>
+                  <dd>{selectedRole.notes || "-"}</dd>
+                </div>
+              </dl>
+            ) : (
+              <p className={styles.infoText}>Select a role to view details.</p>
+            )}
+          </section>
+        </>
+      ) : null}
+
+      {activeTab !== "Overview" && activeTab !== "Contacts" && activeTab !== "Roles" ? (
         <section className={styles.detailsCard}>
           <div className={styles.detailsHeader}>
             <h2 className={styles.detailsTitle}>{activeTab}</h2>
