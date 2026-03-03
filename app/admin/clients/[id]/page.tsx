@@ -121,6 +121,50 @@ type ClientRoleRow = {
   lastActivity: string;
 };
 
+type ApplicationRecord = {
+  id: string;
+  role_id: string;
+  candidate_id: string;
+  stage: string;
+  source: string | null;
+  submitted_on: string | null;
+  outcome: string | null;
+  notes: string | null;
+  updated_at: string;
+};
+
+type CandidateRecord = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string | null;
+  phone: string | null;
+  mobile: string | null;
+  status_code: string;
+  updated_at: string;
+};
+
+type CandidateStatusRecord = {
+  code: string;
+  label: string;
+};
+
+type ClientCandidateRow = {
+  applicationId: string;
+  candidateId: string;
+  candidateName: string;
+  roleTitle: string;
+  candidateStatus: string;
+  stage: string;
+  source: string | null;
+  submittedOn: string | null;
+  outcome: string | null;
+  applicationNotes: string | null;
+  phone: string | null;
+  email: string | null;
+  lastActivity: string;
+};
+
 type ParentClientRecord = {
   name: string;
 };
@@ -176,6 +220,9 @@ export default function ClientProfilePage() {
   const [roleStatusMap, setRoleStatusMap] = useState<Record<string, string>>({});
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
+  const [selectedCandidateApplicationId, setSelectedCandidateApplicationId] = useState<
+    string | null
+  >(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [communicationNotes, setCommunicationNotes] = useState<ClientCommunicationNoteRecord[]>(
     [],
@@ -187,6 +234,7 @@ export default function ClientProfilePage() {
   const [noteBody, setNoteBody] = useState("");
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [isSavingNote, setIsSavingNote] = useState(false);
+  const [clientCandidateRows, setClientCandidateRows] = useState<ClientCandidateRow[]>([]);
 
   useEffect(() => {
     let isMounted = true;
@@ -217,6 +265,8 @@ export default function ClientProfilePage() {
         { data: employmentsData, error: employmentsError },
         { data: rolesData, error: rolesError },
         { data: roleStatusesData, error: roleStatusesError },
+        { data: candidateStatusesData, error: candidateStatusesError },
+        { data: clientApplicationsData, error: clientApplicationsError },
         { data: clientNotesData, error: clientNotesError },
       ] = await Promise.all([
         supabase
@@ -239,6 +289,10 @@ export default function ClientProfilePage() {
           .eq("client_id", clientId)
           .order("updated_at", { ascending: false }),
         supabase.from("role_statuses").select("code,label"),
+        supabase.from("candidate_statuses").select("code,label"),
+        supabase
+          .from("applications")
+          .select("id,role_id,candidate_id,stage,source,submitted_on,outcome,notes,updated_at"),
         supabase
           .from("client_communication_notes")
           .select(
@@ -276,6 +330,18 @@ export default function ClientProfilePage() {
 
       if (roleStatusesError) {
         setErrorMessage(roleStatusesError.message);
+        setIsLoading(false);
+        return;
+      }
+
+      if (candidateStatusesError) {
+        setErrorMessage(candidateStatusesError.message);
+        setIsLoading(false);
+        return;
+      }
+
+      if (clientApplicationsError) {
+        setErrorMessage(clientApplicationsError.message);
         setIsLoading(false);
         return;
       }
@@ -327,6 +393,75 @@ export default function ClientProfilePage() {
         acc[row.code] = row.label;
         return acc;
       }, {});
+      const candidateStatusMap = ((candidateStatusesData ?? []) as CandidateStatusRecord[]).reduce<
+        Record<string, string>
+      >((acc, row) => {
+        acc[row.code] = row.label;
+        return acc;
+      }, {});
+
+      const roleRowsData = (rolesData ?? []) as RoleRecord[];
+      const roleTitleById = roleRowsData.reduce<Record<string, string>>((acc, row) => {
+        acc[row.id] = row.title;
+        return acc;
+      }, {});
+
+      const roleIdsForClient = new Set(roleRowsData.map((row) => row.id));
+      const linkedApplications = ((clientApplicationsData ?? []) as ApplicationRecord[]).filter(
+        (row) => roleIdsForClient.has(row.role_id),
+      );
+
+      const candidateIds = Array.from(new Set(linkedApplications.map((row) => row.candidate_id)));
+      let candidateById: Record<string, CandidateRecord> = {};
+      if (candidateIds.length > 0) {
+        const { data: candidatesData, error: candidatesError } = await supabase
+          .from("candidates")
+          .select("id,first_name,last_name,email,phone,mobile,status_code,updated_at")
+          .in("id", candidateIds);
+
+        if (!isMounted) return;
+
+        if (candidatesError) {
+          setErrorMessage(candidatesError.message);
+          setIsLoading(false);
+          return;
+        }
+
+        candidateById = ((candidatesData ?? []) as CandidateRecord[]).reduce<
+          Record<string, CandidateRecord>
+        >((acc, row) => {
+          acc[row.id] = row;
+          return acc;
+        }, {});
+      }
+
+      const mappedClientCandidates = linkedApplications
+        .map((app) => {
+          const candidate = candidateById[app.candidate_id];
+          if (!candidate) return null;
+          const candidateUpdated = new Date(candidate.updated_at).getTime();
+          const appUpdated = new Date(app.updated_at).getTime();
+          return {
+            applicationId: app.id,
+            candidateId: candidate.id,
+            candidateName: `${candidate.first_name} ${candidate.last_name}`.trim(),
+            roleTitle: roleTitleById[app.role_id] ?? "Role unavailable",
+            candidateStatus: candidateStatusMap[candidate.status_code] ?? candidate.status_code,
+            stage: app.stage,
+            source: app.source,
+            submittedOn: app.submitted_on,
+            outcome: app.outcome,
+            applicationNotes: app.notes,
+            phone: candidate.mobile || candidate.phone || null,
+            email: candidate.email,
+            lastActivity: new Date(Math.max(candidateUpdated, appUpdated)).toISOString(),
+          } satisfies ClientCandidateRow;
+        })
+        .filter((row): row is ClientCandidateRow => Boolean(row))
+        .sort(
+          (a, b) =>
+            new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime(),
+        );
 
       let parentName = "-";
       if (clientData.parent_client_id) {
@@ -363,7 +498,9 @@ export default function ClientProfilePage() {
       setAccountManagerLabel(managerName);
       setEmploymentRows(employments);
       setContactRows(contacts);
-      setRoleRows((rolesData ?? []) as RoleRecord[]);
+      setRoleRows(roleRowsData);
+      setClientCandidateRows(mappedClientCandidates);
+      setSelectedCandidateApplicationId(mappedClientCandidates[0]?.applicationId ?? null);
       setCommunicationNotes((clientNotesData ?? []) as ClientCommunicationNoteRecord[]);
       setRoleStatusMap(roleStatuses);
       setIsLoading(false);
@@ -477,6 +614,25 @@ export default function ClientProfilePage() {
     if (!effectiveSelectedRoleId) return null;
     return clientRoles.find((role) => role.id === effectiveSelectedRoleId) ?? null;
   }, [clientRoles, effectiveSelectedRoleId]);
+
+  const effectiveSelectedCandidateApplicationId = useMemo(() => {
+    if (clientCandidateRows.length === 0) return null;
+    const hasSelected = clientCandidateRows.some(
+      (row) => row.applicationId === selectedCandidateApplicationId,
+    );
+    return hasSelected
+      ? selectedCandidateApplicationId
+      : clientCandidateRows[0].applicationId;
+  }, [clientCandidateRows, selectedCandidateApplicationId]);
+
+  const selectedClientCandidate = useMemo(() => {
+    if (!effectiveSelectedCandidateApplicationId) return null;
+    return (
+      clientCandidateRows.find(
+        (row) => row.applicationId === effectiveSelectedCandidateApplicationId,
+      ) ?? null
+    );
+  }, [clientCandidateRows, effectiveSelectedCandidateApplicationId]);
 
   const contactNameById = useMemo(() => {
     return contactRows.reduce<Record<string, string>>((acc, row) => {
@@ -1242,11 +1398,129 @@ export default function ClientProfilePage() {
       ) : null}
 
       {activeTab === "Candidates" ? (
-        <section className={styles.detailsCard}>
-          <div className={styles.detailsHeader}>
-            <h2 className={styles.detailsTitle}>Candidates</h2>
-          </div>
-        </section>
+        <>
+          <section className={styles.detailsCard}>
+            <div className={styles.detailsHeader}>
+              <h2 className={styles.detailsTitle}>Candidates</h2>
+            </div>
+            {clientCandidateRows.length > 0 ? (
+              <div className={styles.tableWrap}>
+                <table className={styles.dataTable}>
+                  <thead>
+                    <tr>
+                      <th>Candidate Name</th>
+                      <th>Role</th>
+                      <th>Phone</th>
+                      <th>Email</th>
+                      <th>Status</th>
+                      <th>Stage</th>
+                      <th>Last Activity</th>
+                      <th>Profile</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {clientCandidateRows.map((row) => (
+                      <tr
+                        key={row.applicationId}
+                        className={
+                          effectiveSelectedCandidateApplicationId === row.applicationId
+                            ? styles.tableRowActive
+                            : ""
+                        }
+                      >
+                        <td>
+                          <button
+                            type="button"
+                            className={styles.rowSelectButton}
+                            onClick={() =>
+                              setSelectedCandidateApplicationId(row.applicationId)
+                            }
+                          >
+                            {row.candidateName}
+                          </button>
+                        </td>
+                        <td>{row.roleTitle}</td>
+                        <td>{row.phone || "-"}</td>
+                        <td>{row.email || "-"}</td>
+                        <td>{row.candidateStatus}</td>
+                        <td>{row.stage}</td>
+                        <td>{new Date(row.lastActivity).toLocaleDateString("en-GB")}</td>
+                        <td>
+                          <Link
+                            href={`/admin/candidates/${row.candidateId}`}
+                            className={styles.tableActionLink}
+                          >
+                            Open Profile
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className={styles.infoText}>No candidates linked to this client.</p>
+            )}
+          </section>
+
+          <section className={styles.detailsCard}>
+            <div className={styles.detailsHeader}>
+              <h2 className={styles.detailsTitle}>Candidate Details</h2>
+              {selectedClientCandidate ? (
+                <Link
+                  href={`/admin/candidates/${selectedClientCandidate.candidateId}`}
+                  className={styles.editLink}
+                >
+                  Open full profile
+                </Link>
+              ) : null}
+            </div>
+            {selectedClientCandidate ? (
+              <dl className={styles.detailsGrid}>
+                <div>
+                  <dt>Candidate</dt>
+                  <dd>{selectedClientCandidate.candidateName}</dd>
+                </div>
+                <div>
+                  <dt>Role</dt>
+                  <dd>{selectedClientCandidate.roleTitle}</dd>
+                </div>
+                <div>
+                  <dt>Status</dt>
+                  <dd>{selectedClientCandidate.candidateStatus}</dd>
+                </div>
+                <div>
+                  <dt>Stage</dt>
+                  <dd>{selectedClientCandidate.stage}</dd>
+                </div>
+                <div>
+                  <dt>Submitted On</dt>
+                  <dd>
+                    {selectedClientCandidate.submittedOn
+                      ? new Date(selectedClientCandidate.submittedOn).toLocaleDateString(
+                          "en-GB",
+                        )
+                      : "-"}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Source</dt>
+                  <dd>{selectedClientCandidate.source || "-"}</dd>
+                </div>
+                <div>
+                  <dt>Outcome</dt>
+                  <dd>{selectedClientCandidate.outcome || "-"}</dd>
+                </div>
+                <div className={styles.notesBlockInline}>
+                  <dt>Application Notes</dt>
+                  <dd>{selectedClientCandidate.applicationNotes || "-"}</dd>
+                </div>
+              </dl>
+            ) : (
+              <p className={styles.infoText}>Select a candidate to view details.</p>
+            )}
+          </section>
+        </>
       ) : null}
     </main>
   );
