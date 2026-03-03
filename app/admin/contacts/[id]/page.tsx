@@ -20,6 +20,10 @@ type ContactRecord = {
   source: string | null;
   marketing_email_opt_out: boolean;
   notes: string | null;
+  linkedin_url: string | null;
+  x_url: string | null;
+  facebook_url: string | null;
+  instagram_url: string | null;
   updated_at: string;
 };
 
@@ -37,6 +41,7 @@ type ClientRecord = {
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const TABS = ["Overview", "Social Links"] as const;
 
 export default function ContactProfilePage() {
   const params = useParams<{ id?: string }>();
@@ -47,7 +52,9 @@ export default function ContactProfilePage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [contact, setContact] = useState<ContactRecord | null>(null);
   const [clientName, setClientName] = useState<string>("-");
+  const [clientId, setClientId] = useState<string | null>(null);
   const [statusLabel, setStatusLabel] = useState("Unassigned");
+  const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>("Overview");
 
   useEffect(() => {
     let isMounted = true;
@@ -66,7 +73,7 @@ export default function ContactProfilePage() {
         supabase
           .from("contacts")
           .select(
-            "id,first_name,last_name,department,email,secondary_email,job_title,work_phone,mobile,phone,source,marketing_email_opt_out,notes,updated_at",
+            "id,first_name,last_name,department,email,secondary_email,job_title,work_phone,mobile,phone,source,marketing_email_opt_out,notes,linkedin_url,x_url,facebook_url,instagram_url,updated_at",
           )
           .eq("id", contactId)
           .maybeSingle<ContactRecord>(),
@@ -129,6 +136,7 @@ export default function ContactProfilePage() {
           .maybeSingle<ClientRecord>();
 
         if (isMounted) {
+          setClientId(clientData?.id ?? null);
           setClientName(clientData?.name ?? "-");
         }
       }
@@ -179,65 +187,173 @@ export default function ContactProfilePage() {
         </Link>
       </header>
 
-      <section className={styles.detailsCard}>
-        <div className={styles.detailsHeader}>
-          <h2 className={styles.detailsTitle}>Overview</h2>
-          <Link href={`/admin/contacts/${contact.id}/edit`} className={styles.editLink}>
-            Edit details
-          </Link>
-        </div>
-        <dl className={styles.detailsGrid}>
-          <div>
-            <dt>Status</dt>
-            <dd>{statusLabel}</dd>
-          </div>
-          <div>
-            <dt>Client</dt>
-            <dd>{clientName}</dd>
-          </div>
-          <div>
-            <dt>Email</dt>
-            <dd>{contact.email || "-"}</dd>
-          </div>
-          <div>
-            <dt>Secondary Email</dt>
-            <dd>{contact.secondary_email || "-"}</dd>
-          </div>
-          <div>
-            <dt>Mobile</dt>
-            <dd>{contact.mobile || "-"}</dd>
-          </div>
-          <div>
-            <dt>Work Phone</dt>
-            <dd>{contact.work_phone || contact.phone || "-"}</dd>
-          </div>
-          <div>
-            <dt>Department</dt>
-            <dd>{contact.department || "-"}</dd>
-          </div>
-          <div>
-            <dt>Job Title</dt>
-            <dd>{contact.job_title || "-"}</dd>
-          </div>
-          <div>
-            <dt>Source</dt>
-            <dd>{contact.source || "-"}</dd>
-          </div>
-          <div>
-            <dt>Marketing Opt Out</dt>
-            <dd>{contact.marketing_email_opt_out ? "Yes" : "No"}</dd>
-          </div>
-          <div>
-            <dt>Last Updated</dt>
-            <dd>{new Date(contact.updated_at).toLocaleDateString("en-GB")}</dd>
-          </div>
-        </dl>
-
-        <div className={styles.notesBlock}>
-          <p className={styles.notesLabel}>Notes</p>
-          <p className={styles.notesText}>{contact.notes || "-"}</p>
+      <section className={styles.tabsCard}>
+        <div className={styles.tabsWrap}>
+          {TABS.map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              className={`${styles.tabButton} ${activeTab === tab ? styles.tabButtonActive : ""}`}
+              onClick={() => setActiveTab(tab)}
+            >
+              {tab}
+            </button>
+          ))}
         </div>
       </section>
+
+      {activeTab === "Overview" ? (
+        <section className={styles.detailsCard}>
+          <div className={styles.detailsHeader}>
+            <h2 className={styles.detailsTitle}>Overview</h2>
+            <Link href={`/admin/contacts/${contact.id}/edit`} className={styles.editLink}>
+              Edit details
+            </Link>
+          </div>
+          <dl className={styles.detailsGrid}>
+            <div>
+              <dt>Status</dt>
+              <dd>{statusLabel}</dd>
+            </div>
+            <div>
+              <dt>Client</dt>
+              <dd>
+                {clientId ? (
+                  <Link href={`/admin/clients/${clientId}`} className={styles.subtleLink}>
+                    {clientName}
+                  </Link>
+                ) : (
+                  clientName
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt>Contact Name</dt>
+              <dd>
+                {contact.first_name} {contact.last_name}
+              </dd>
+            </div>
+            <div>
+              <dt>Department</dt>
+              <dd>{contact.department || "-"}</dd>
+            </div>
+            <div>
+              <dt>Email</dt>
+              <dd>{contact.email || "-"}</dd>
+            </div>
+            <div>
+              <dt>Secondary Email</dt>
+              <dd>{contact.secondary_email || "-"}</dd>
+            </div>
+            <div>
+              <dt>Job Title</dt>
+              <dd>{contact.job_title || "-"}</dd>
+            </div>
+            <div>
+              <dt>Work Phone</dt>
+              <dd>{contact.work_phone || contact.phone || "-"}</dd>
+            </div>
+            <div>
+              <dt>Mobile</dt>
+              <dd>{contact.mobile || "-"}</dd>
+            </div>
+            <div>
+              <dt>Source</dt>
+              <dd>{contact.source || "-"}</dd>
+            </div>
+            <div>
+              <dt>Marketing Email Opt Out</dt>
+              <dd>{contact.marketing_email_opt_out ? "Yes" : "No"}</dd>
+            </div>
+            <div>
+              <dt>Last Updated</dt>
+              <dd>{new Date(contact.updated_at).toLocaleDateString("en-GB")}</dd>
+            </div>
+            <div className={styles.notesBlockInline}>
+              <dt>Notes</dt>
+              <dd>{contact.notes || "-"}</dd>
+            </div>
+          </dl>
+        </section>
+      ) : null}
+
+      {activeTab === "Social Links" ? (
+        <section className={styles.detailsCard}>
+          <div className={styles.detailsHeader}>
+            <h2 className={styles.detailsTitle}>Social Links</h2>
+          </div>
+          <dl className={styles.detailsGrid}>
+            <div>
+              <dt>LinkedIn</dt>
+              <dd>
+                {contact.linkedin_url ? (
+                  <a
+                    href={contact.linkedin_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={styles.subtleLink}
+                  >
+                    Open
+                  </a>
+                ) : (
+                  "-"
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt>X</dt>
+              <dd>
+                {contact.x_url ? (
+                  <a
+                    href={contact.x_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={styles.subtleLink}
+                  >
+                    Open
+                  </a>
+                ) : (
+                  "-"
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt>Facebook</dt>
+              <dd>
+                {contact.facebook_url ? (
+                  <a
+                    href={contact.facebook_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={styles.subtleLink}
+                  >
+                    Open
+                  </a>
+                ) : (
+                  "-"
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt>Instagram</dt>
+              <dd>
+                {contact.instagram_url ? (
+                  <a
+                    href={contact.instagram_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={styles.subtleLink}
+                  >
+                    Open
+                  </a>
+                ) : (
+                  "-"
+                )}
+              </dd>
+            </div>
+          </dl>
+        </section>
+      ) : null}
     </main>
   );
 }
