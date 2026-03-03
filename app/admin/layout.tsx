@@ -25,7 +25,7 @@ const ADD_OPTIONS = [
     id: "contact",
     label: "Contact",
     description: "Add a person and link employment to a client record.",
-    isReady: false,
+    isReady: true,
   },
   {
     id: "role",
@@ -43,6 +43,11 @@ const ADD_OPTIONS = [
 
 type ProfileRole = "admin" | "staff";
 type AddOptionId = (typeof ADD_OPTIONS)[number]["id"];
+
+const ADD_ROUTES: Partial<Record<AddOptionId, string>> = {
+  client: "/admin/clients/new",
+  contact: "/admin/contacts/new",
+};
 
 export default function AdminLayout({
   children,
@@ -228,9 +233,10 @@ export default function AdminLayout({
                     key={option.id}
                     className={styles.modalOptionCard}
                     onClick={() => {
-                      if (option.id === "client") {
+                      const route = ADD_ROUTES[option.id];
+                      if (route) {
                         closeAddModal();
-                        router.push("/admin/clients/new");
+                        router.push(route);
                         return;
                       }
                       setComingSoonOption(option.id);

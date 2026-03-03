@@ -107,6 +107,19 @@
   background: #f7fbfb;
 }
 
+.checkboxField {
+  margin-top: 0.2rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #123138;
+}
+
+.checkboxField input {
+  width: 1rem;
+  height: 1rem;
+}
+
 .fullWidthField {
   margin-top: 0.8rem;
 }
