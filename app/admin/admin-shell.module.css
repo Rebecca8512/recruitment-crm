@@ -207,11 +207,22 @@
   padding: 0.72rem;
   text-align: left;
   cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .modalOptionCard:hover {
   border-color: #c5e7dc;
+  background-color: #c5e7dc;
   box-shadow: 0 10px 18px rgba(0, 15, 20, 0.08);
+}
+
+.modalOptionCard:focus-visible {
+  outline: 2px solid #0a9396;
+  outline-offset: 2px;
+  background-color: #c5e7dc;
 }
 
 .modalOptionTitle {
