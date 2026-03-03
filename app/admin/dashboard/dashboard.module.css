@@ -1,0 +1,88 @@
+.page {
+  min-height: 100vh;
+  padding: 2rem;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(20, 184, 166, 0.18), transparent 36%),
+    radial-gradient(circle at 82% 84%, rgba(249, 115, 22, 0.17), transparent 38%),
+    #f7f2e9;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin: 0 auto 1.5rem;
+  max-width: 72rem;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.11em;
+  color: #0a5254;
+}
+
+.title {
+  margin: 0.25rem 0 0;
+  font-size: clamp(1.8rem, 4vw, 2.7rem);
+}
+
+.signOutButton {
+  border: 1px solid rgba(0, 15, 20, 0.2);
+  border-radius: 0.65rem;
+  padding: 0.65rem 0.9rem;
+  background: #ffffff;
+  color: #00161a;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.signOutButton:hover {
+  border-color: #0a9396;
+  color: #0a5254;
+}
+
+.card {
+  margin: 0 auto;
+  max-width: 72rem;
+  border: 1px solid rgba(0, 15, 20, 0.1);
+  border-radius: 1rem;
+  padding: 1.4rem;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 18px 30px rgba(0, 15, 20, 0.08);
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.cardText {
+  margin-top: 0.6rem;
+  margin-bottom: 0;
+  color: #28383d;
+}
+
+.loadingWrap {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: #f7f2e9;
+}
+
+.loadingText {
+  color: #2c3b40;
+}
+
+@media (max-width: 700px) {
+  .page {
+    padding: 1.2rem;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
