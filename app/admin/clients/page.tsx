@@ -10,11 +10,18 @@ type ClientRow = {
   name: string;
   contact_number: string | null;
   status_code: string | null;
+  updated_at: string;
 };
 
 type StatusRow = {
   code: string;
   label: string;
+};
+
+type RoleRow = {
+  client_id: string;
+  closed_on: string | null;
+  updated_at: string;
 };
 
 export default function ClientsPage() {
@@ -24,19 +31,27 @@ export default function ClientsPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [clients, setClients] = useState<ClientRow[]>([]);
   const [statusMap, setStatusMap] = useState<Record<string, string>>({});
+  const [openRoleCountMap, setOpenRoleCountMap] = useState<Record<string, number>>(
+    {},
+  );
+  const [lastActivityMap, setLastActivityMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let isMounted = true;
 
     const load = async () => {
-      const [{ data: statusData, error: statusError }, { data: clientsData, error }] =
-        await Promise.all([
-          supabase.from("client_statuses").select("code,label"),
-          supabase
-            .from("clients")
-            .select("id,name,contact_number,status_code")
-            .order("name", { ascending: true }),
-        ]);
+      const [
+        { data: statusData, error: statusError },
+        { data: clientsData, error },
+        { data: rolesData, error: rolesError },
+      ] = await Promise.all([
+        supabase.from("client_statuses").select("code,label"),
+        supabase
+          .from("clients")
+          .select("id,name,contact_number,status_code,updated_at")
+          .order("name", { ascending: true }),
+        supabase.from("roles").select("client_id,closed_on,updated_at"),
+      ]);
 
       if (!isMounted) return;
 
@@ -52,6 +67,12 @@ export default function ClientsPage() {
         return;
       }
 
+      if (rolesError) {
+        setErrorMessage(rolesError.message);
+        setIsLoading(false);
+        return;
+      }
+
       const map = ((statusData ?? []) as StatusRow[]).reduce<
         Record<string, string>
       >((acc, row) => {
@@ -59,8 +80,35 @@ export default function ClientsPage() {
         return acc;
       }, {});
 
+      const roleRows = (rolesData ?? []) as RoleRow[];
+      const openRoles: Record<string, number> = {};
+      const roleLastActivity: Record<string, number> = {};
+
+      for (const role of roleRows) {
+        if (!role.closed_on) {
+          openRoles[role.client_id] = (openRoles[role.client_id] ?? 0) + 1;
+        }
+
+        const roleUpdated = new Date(role.updated_at).getTime();
+        roleLastActivity[role.client_id] = Math.max(
+          roleLastActivity[role.client_id] ?? 0,
+          roleUpdated,
+        );
+      }
+
+      const clientsRows = (clientsData ?? []) as ClientRow[];
+      const lastActivity: Record<string, string> = {};
+
+      for (const client of clientsRows) {
+        const clientUpdated = new Date(client.updated_at).getTime();
+        const latest = Math.max(clientUpdated, roleLastActivity[client.id] ?? 0);
+        lastActivity[client.id] = new Date(latest).toISOString();
+      }
+
       setStatusMap(map);
-      setClients((clientsData ?? []) as ClientRow[]);
+      setOpenRoleCountMap(openRoles);
+      setLastActivityMap(lastActivity);
+      setClients(clientsRows);
       setIsLoading(false);
     };
 
@@ -107,6 +155,8 @@ export default function ClientsPage() {
                     <th>Client Name</th>
                     <th>Contact Number</th>
                     <th>Status</th>
+                    <th>Open Roles</th>
+                    <th>Last Activity</th>
                     <th>Profile</th>
                   </tr>
                 </thead>
@@ -121,6 +171,14 @@ export default function ClientsPage() {
                             ? (statusMap[client.status_code] ?? client.status_code)
                             : "Unassigned"}
                         </span>
+                      </td>
+                      <td>{openRoleCountMap[client.id] ?? 0}</td>
+                      <td>
+                        {lastActivityMap[client.id]
+                          ? new Date(lastActivityMap[client.id]).toLocaleDateString(
+                              "en-GB",
+                            )
+                          : "-"}
                       </td>
                       <td>
                         <Link
