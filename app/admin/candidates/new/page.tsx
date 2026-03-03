@@ -30,10 +30,42 @@ type ClientOption = {
   name: string;
 };
 
+type RoleOption = {
+  id: string;
+  title: string;
+  client_id: string | null;
+};
+
 type InsertedClient = {
   id: string;
   name: string;
 };
+
+type CandidateRoleApplicationInput = {
+  rowId: string;
+  roleId: string;
+  hasResume: boolean;
+  hasFormattedResume: boolean;
+  hasCoverLetter: boolean;
+  hasOffer: boolean;
+  hasContract: boolean;
+  hasOther: boolean;
+  otherNote: string;
+  folderUrl: string;
+};
+
+const EMPTY_ROLE_APPLICATION = (): CandidateRoleApplicationInput => ({
+  rowId: crypto.randomUUID(),
+  roleId: "",
+  hasResume: false,
+  hasFormattedResume: false,
+  hasCoverLetter: false,
+  hasOffer: false,
+  hasContract: false,
+  hasOther: false,
+  otherNote: "",
+  folderUrl: "",
+});
 
 function splitFullName(name: string) {
   const parts = name
@@ -74,6 +106,7 @@ export default function NewCandidatePage() {
   const [ownerUserId, setOwnerUserId] = useState("");
   const [ownerLabel, setOwnerLabel] = useState("");
   const [clientOptions, setClientOptions] = useState<ClientOption[]>([]);
+  const [roleOptions, setRoleOptions] = useState<RoleOption[]>([]);
   const [candidateStatusOptions, setCandidateStatusOptions] = useState<
     CandidateStatusOption[]
   >([]);
@@ -113,6 +146,9 @@ export default function NewCandidatePage() {
   const [experienceYears, setExperienceYears] = useState("");
   const [noticePeriodWeeks, setNoticePeriodWeeks] = useState("");
   const [coreSkills, setCoreSkills] = useState("");
+  const [roleApplications, setRoleApplications] = useState<
+    CandidateRoleApplicationInput[]
+  >([EMPTY_ROLE_APPLICATION()]);
 
   useEffect(() => {
     let isMounted = true;
@@ -134,6 +170,7 @@ export default function NewCandidatePage() {
       const [
         { data: profile },
         { data: clientsData, error: clientsError },
+        { data: rolesData, error: rolesError },
         { data: candidateStatuses, error: candidateStatusesError },
         { data: clientStatuses, error: clientStatusesError },
       ] = await Promise.all([
@@ -143,6 +180,10 @@ export default function NewCandidatePage() {
           .eq("id", user.id)
           .maybeSingle<UserProfile>(),
         supabase.from("clients").select("id,name").order("name", { ascending: true }),
+        supabase
+          .from("roles")
+          .select("id,title,client_id")
+          .order("title", { ascending: true }),
         supabase
           .from("candidate_statuses")
           .select("code,label,sort_order")
@@ -166,6 +207,12 @@ export default function NewCandidatePage() {
         return;
       }
 
+      if (rolesError) {
+        setErrorMessage(rolesError.message);
+        setIsLoading(false);
+        return;
+      }
+
       if (clientStatusesError) {
         setErrorMessage(clientStatusesError.message);
         setIsLoading(false);
@@ -176,6 +223,7 @@ export default function NewCandidatePage() {
         profile?.full_name?.trim() || profile?.email || user.email || "Current user";
       setOwnerLabel(owner);
       setClientOptions((clientsData ?? []) as ClientOption[]);
+      setRoleOptions((rolesData ?? []) as RoleOption[]);
 
       const candidateStatusRows = (candidateStatuses ?? []) as CandidateStatusOption[];
       setCandidateStatusOptions(candidateStatusRows);
@@ -199,6 +247,36 @@ export default function NewCandidatePage() {
       isMounted = false;
     };
   }, [router, supabase]);
+
+  const clientNameById = useMemo(() => {
+    return clientOptions.reduce<Record<string, string>>((acc, client) => {
+      acc[client.id] = client.name;
+      return acc;
+    }, {});
+  }, [clientOptions]);
+
+  const updateRoleApplicationRow = (
+    rowId: string,
+    updater: (current: CandidateRoleApplicationInput) => CandidateRoleApplicationInput,
+  ) => {
+    setRoleApplications((current) =>
+      current.map((row) => (row.rowId === rowId ? updater(row) : row)),
+    );
+  };
+
+  const addRoleApplicationRow = () => {
+    setRoleApplications((current) => [...current, EMPTY_ROLE_APPLICATION()]);
+  };
+
+  const removeRoleApplicationRow = (rowId: string) => {
+    setRoleApplications((current) => {
+      if (current.length === 1) {
+        return [EMPTY_ROLE_APPLICATION()];
+      }
+
+      return current.filter((row) => row.rowId !== rowId);
+    });
+  };
 
   const resolveEmployerClient = async () => {
     const employer = currentEmployerName.trim();
@@ -291,6 +369,37 @@ export default function NewCandidatePage() {
       return;
     }
 
+    const nonEmptyRoleRows = roleApplications.filter((row) => {
+      const hasPaperworkValues =
+        row.hasResume ||
+        row.hasFormattedResume ||
+        row.hasCoverLetter ||
+        row.hasOffer ||
+        row.hasContract ||
+        row.hasOther ||
+        row.otherNote.trim().length > 0 ||
+        row.folderUrl.trim().length > 0;
+      return row.roleId || hasPaperworkValues;
+    });
+
+    const duplicateRoleIds = new Set<string>();
+    const seenRoleIds = new Set<string>();
+    for (const row of nonEmptyRoleRows) {
+      if (!row.roleId) {
+        setErrorMessage("Select a role for each application row you complete.");
+        return;
+      }
+      if (seenRoleIds.has(row.roleId)) {
+        duplicateRoleIds.add(row.roleId);
+      }
+      seenRoleIds.add(row.roleId);
+    }
+
+    if (duplicateRoleIds.size > 0) {
+      setErrorMessage("A role can only be selected once in this form.");
+      return;
+    }
+
     setIsSaving(true);
 
     let employerClientId: string | null = null;
@@ -343,18 +452,83 @@ export default function NewCandidatePage() {
       created_by: ownerUserId,
     };
 
-    const { error } = await supabase.from("candidates").insert(payload);
+    const { data: insertedCandidate, error } = await supabase
+      .from("candidates")
+      .insert(payload)
+      .select("id")
+      .single<{ id: string }>();
 
-    if (error) {
+    if (error || !insertedCandidate) {
       const isSchemaMismatch =
-        error.message.includes("column") || error.message.includes("schema cache");
+        error?.message.includes("column") || error?.message.includes("schema cache");
       setErrorMessage(
         isSchemaMismatch
           ? "Candidates table is missing new fields. Run supabase/candidate_form_patch.sql and retry."
-          : error.message,
+          : (error?.message ?? "Failed to create candidate."),
       );
       setIsSaving(false);
       return;
+    }
+
+    if (nonEmptyRoleRows.length > 0) {
+      const applicationPayload = nonEmptyRoleRows.map((row) => ({
+        role_id: row.roleId,
+        candidate_id: insertedCandidate.id,
+        stage: "applied",
+        source: source || null,
+        created_by: ownerUserId,
+      }));
+
+      const { data: createdApplications, error: applicationInsertError } = await supabase
+        .from("applications")
+        .insert(applicationPayload)
+        .select("id,role_id");
+
+      if (applicationInsertError) {
+        setErrorMessage(
+          `Candidate saved, but role applications failed: ${applicationInsertError.message}`,
+        );
+        setIsSaving(false);
+        return;
+      }
+
+      const applicationIdByRoleId = new Map<string, string>();
+      for (const app of createdApplications ?? []) {
+        applicationIdByRoleId.set(app.role_id as string, app.id as string);
+      }
+
+      const filePayload = nonEmptyRoleRows
+        .map((row) => {
+          const applicationId = applicationIdByRoleId.get(row.roleId);
+          if (!applicationId) return null;
+          return {
+            application_id: applicationId,
+            has_resume: row.hasResume,
+            has_formatted_resume: row.hasFormattedResume,
+            has_cover_letter: row.hasCoverLetter,
+            has_offer: row.hasOffer,
+            has_contract: row.hasContract,
+            has_other: row.hasOther,
+            other_note: row.otherNote.trim() || null,
+            folder_url: row.folderUrl.trim() || null,
+            created_by: ownerUserId,
+          };
+        })
+        .filter((value): value is NonNullable<typeof value> => value !== null);
+
+      if (filePayload.length > 0) {
+        const { error: fileInsertError } = await supabase
+          .from("application_files")
+          .upsert(filePayload, { onConflict: "application_id" });
+
+        if (fileInsertError) {
+          setErrorMessage(
+            `Candidate and applications saved, but paperwork details failed: ${fileInsertError.message}`,
+          );
+          setIsSaving(false);
+          return;
+        }
+      }
     }
 
     setSuccessMessage("Candidate saved successfully.");
