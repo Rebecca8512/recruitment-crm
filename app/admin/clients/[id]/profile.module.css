@@ -116,87 +116,92 @@
   color: #183237;
 }
 
-.deleteSection {
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid rgba(0, 15, 20, 0.1);
+.tableWrap {
+  margin-top: 0.9rem;
+  overflow-x: auto;
 }
 
-.deleteLink {
-  border: 0;
-  background: transparent;
-  color: #8f1b13;
-  text-decoration: underline;
-  text-underline-offset: 0.15rem;
-  cursor: pointer;
-  padding: 0;
+.dataTable {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 680px;
 }
 
-.deleteLink:hover {
-  color: #6d140e;
-}
-
-.deleteWarningCard {
-  margin-top: 0.75rem;
-  border: 1px solid rgba(143, 27, 19, 0.3);
-  border-radius: 0.7rem;
-  background: #fff8f6;
-  padding: 0.9rem;
-}
-
-.deleteWarningTitle {
-  margin: 0;
-  font-weight: 600;
-  color: #7a1710;
-}
-
-.deleteWarningText {
-  margin: 0.45rem 0 0;
-  color: #4f2a29;
-}
-
-.deleteErrorText {
-  margin: 0.55rem 0 0;
-  color: #8f1b13;
+.dataTable th {
+  text-align: left;
+  font-size: 0.85rem;
   font-weight: 500;
+  color: #345056;
+  padding: 0.7rem;
+  border-bottom: 1px solid rgba(0, 15, 20, 0.14);
 }
 
-.deleteActions {
-  margin-top: 0.8rem;
-  display: flex;
-  gap: 0.5rem;
+.dataTable td {
+  padding: 0.75rem 0.7rem;
+  border-bottom: 1px solid rgba(0, 15, 20, 0.08);
+  color: #1c3237;
+  vertical-align: middle;
 }
 
-.confirmDeleteButton {
-  border: 1px solid #8f1b13;
-  border-radius: 0.58rem;
-  background: #8f1b13;
-  color: #fff;
-  padding: 0.46rem 0.72rem;
+.tableRowActive td {
+  background: rgba(197, 231, 220, 0.34);
+}
+
+.rowSelectButton {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: #1c3237;
+  text-decoration-line: underline;
+  text-decoration-color: #c5e7dc;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.14rem;
   cursor: pointer;
+  font: inherit;
 }
 
-.confirmDeleteButton:hover:enabled {
-  background: #74150f;
+.rowSelectButton:hover {
+  color: #1c3237;
+  text-decoration-color: #9fd7c5;
 }
 
-.confirmDeleteButton:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.cancelDeleteButton {
+.tableActionLink {
+  display: inline-flex;
   border: 1px solid rgba(0, 15, 20, 0.2);
   border-radius: 0.58rem;
-  background: #fff;
+  background: #ffffff;
   color: #001418;
-  padding: 0.46rem 0.72rem;
-  cursor: pointer;
+  padding: 0.4rem 0.68rem;
+  text-decoration: none;
+  font-size: 0.88rem;
 }
 
-.cancelDeleteButton:hover:enabled {
+.tableActionLink:hover {
   border-color: #0a9396;
   color: #0a5254;
+  background: #c5e7dc;
+}
+
+.subtleLink {
+  color: inherit;
+  text-decoration-line: underline;
+  text-decoration-color: #c5e7dc;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.14rem;
+}
+
+.subtleLink:hover {
+  color: inherit;
+  text-decoration-color: #9fd7c5;
+}
+
+.notesBlockInline {
+  grid-column: 1 / -1;
+}
+
+.notesBlockInline dd {
+  white-space: pre-wrap;
 }
 
 .infoText {
