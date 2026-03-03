@@ -110,6 +110,13 @@ type ClientRoleRow = {
   lastActivity: string;
 };
 
+type ClientFilePlaceholder = {
+  key: string;
+  fileName: string;
+  category: string;
+  status: string;
+};
+
 const TABS = ["Overview", "Contacts", "Roles", "Candidates", "Files"] as const;
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -121,6 +128,27 @@ function formatJobType(value: string) {
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
 }
+
+const FILE_PLACEHOLDERS: ClientFilePlaceholder[] = [
+  {
+    key: "client_contract",
+    fileName: "Client Contract",
+    category: "Contract",
+    status: "Awaiting upload",
+  },
+  {
+    key: "terms_and_agreement",
+    fileName: "Terms & Agreement",
+    category: "Legal",
+    status: "Awaiting upload",
+  },
+  {
+    key: "other_documents",
+    fileName: "Other Documents",
+    category: "Other",
+    status: "Awaiting upload",
+  },
+];
 
 export default function ClientProfilePage() {
   const params = useParams<{ id?: string }>();
@@ -138,6 +166,9 @@ export default function ClientProfilePage() {
   const [roleStatusMap, setRoleStatusMap] = useState<Record<string, string>>({});
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
+  const [selectedFileKey, setSelectedFileKey] = useState<string>(
+    FILE_PLACEHOLDERS[0].key,
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -368,6 +399,13 @@ export default function ClientProfilePage() {
     if (!effectiveSelectedRoleId) return null;
     return clientRoles.find((role) => role.id === effectiveSelectedRoleId) ?? null;
   }, [clientRoles, effectiveSelectedRoleId]);
+
+  const selectedFile = useMemo(() => {
+    return (
+      FILE_PLACEHOLDERS.find((file) => file.key === selectedFileKey) ??
+      FILE_PLACEHOLDERS[0]
+    );
+  }, [selectedFileKey]);
 
   if (isLoading) {
     return (
@@ -794,7 +832,98 @@ export default function ClientProfilePage() {
         </>
       ) : null}
 
-      {activeTab !== "Overview" && activeTab !== "Contacts" && activeTab !== "Roles" ? (
+      {activeTab === "Files" ? (
+        <>
+          <section className={styles.detailsCard}>
+            <div className={styles.detailsHeader}>
+              <h2 className={styles.detailsTitle}>Files</h2>
+              <button type="button" className={styles.disabledActionButton} disabled>
+                Upload file (coming soon)
+              </button>
+            </div>
+            <div className={styles.tableWrap}>
+              <table className={styles.dataTable}>
+                <thead>
+                  <tr>
+                    <th>File Name</th>
+                    <th>Category</th>
+                    <th>Status</th>
+                    <th>Open</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {FILE_PLACEHOLDERS.map((file) => (
+                    <tr
+                      key={file.key}
+                      className={
+                        selectedFile.key === file.key ? styles.tableRowActive : ""
+                      }
+                    >
+                      <td>
+                        <button
+                          type="button"
+                          className={styles.rowSelectButton}
+                          onClick={() => setSelectedFileKey(file.key)}
+                        >
+                          {file.fileName}
+                        </button>
+                      </td>
+                      <td>{file.category}</td>
+                      <td>{file.status}</td>
+                      <td>
+                        <button
+                          type="button"
+                          className={styles.tableDisabledButton}
+                          disabled
+                        >
+                          Coming soon
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section className={styles.detailsCard}>
+            <div className={styles.detailsHeader}>
+              <h2 className={styles.detailsTitle}>File Details</h2>
+            </div>
+            <dl className={styles.detailsGrid}>
+              <div>
+                <dt>File Name</dt>
+                <dd>{selectedFile.fileName}</dd>
+              </div>
+              <div>
+                <dt>Category</dt>
+                <dd>{selectedFile.category}</dd>
+              </div>
+              <div>
+                <dt>Status</dt>
+                <dd>{selectedFile.status}</dd>
+              </div>
+              <div>
+                <dt>Added</dt>
+                <dd>-</dd>
+              </div>
+              <div>
+                <dt>Uploaded By</dt>
+                <dd>-</dd>
+              </div>
+              <div>
+                <dt>File Size</dt>
+                <dd>-</dd>
+              </div>
+            </dl>
+          </section>
+        </>
+      ) : null}
+
+      {activeTab !== "Overview" &&
+      activeTab !== "Contacts" &&
+      activeTab !== "Roles" &&
+      activeTab !== "Files" ? (
         <section className={styles.detailsCard}>
           <div className={styles.detailsHeader}>
             <h2 className={styles.detailsTitle}>{activeTab}</h2>

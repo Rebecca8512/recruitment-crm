@@ -183,6 +183,24 @@
   background: #c5e7dc;
 }
 
+.disabledActionButton {
+  border: 1px solid rgba(0, 15, 20, 0.18);
+  border-radius: 0.58rem;
+  background: #eef2f3;
+  color: #42565b;
+  padding: 0.4rem 0.68rem;
+  font-size: 0.88rem;
+}
+
+.tableDisabledButton {
+  border: 1px solid rgba(0, 15, 20, 0.18);
+  border-radius: 0.58rem;
+  background: #eef2f3;
+  color: #42565b;
+  padding: 0.34rem 0.58rem;
+  font-size: 0.82rem;
+}
+
 .subtleLink {
   color: inherit;
   text-decoration-line: underline;
