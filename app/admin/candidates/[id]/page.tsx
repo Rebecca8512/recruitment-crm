@@ -76,6 +76,17 @@ type ApplicationFileRecord = {
   updated_at: string;
 };
 
+type FileFormState = {
+  hasResume: boolean;
+  hasFormattedResume: boolean;
+  hasCoverLetter: boolean;
+  hasOffer: boolean;
+  hasContract: boolean;
+  hasOther: boolean;
+  otherNote: string;
+  folderUrl: string;
+};
+
 type CandidateCommunicationNoteRecord = {
   id: string;
   candidate_id: string;
@@ -128,6 +139,17 @@ const STAGE_OPTIONS = [
 ] as const;
 const COMMUNICATION_TYPE_OPTIONS = ["Email", "Phone", "Social", "In person"] as const;
 
+const EMPTY_FILE_FORM: FileFormState = {
+  hasResume: false,
+  hasFormattedResume: false,
+  hasCoverLetter: false,
+  hasOffer: false,
+  hasContract: false,
+  hasOther: false,
+  otherNote: "",
+  folderUrl: "",
+};
+
 function formatJobType(value: string) {
   if (!value) return "-";
   return value
@@ -177,6 +199,11 @@ export default function CandidateProfilePage() {
   const [communicationBody, setCommunicationBody] = useState("");
   const [editingCommunicationId, setEditingCommunicationId] = useState<string | null>(null);
   const [isSavingCommunication, setIsSavingCommunication] = useState(false);
+  const [editingFileApplicationId, setEditingFileApplicationId] = useState<string | null>(
+    null,
+  );
+  const [fileForm, setFileForm] = useState<FileFormState>(EMPTY_FILE_FORM);
+  const [isSavingFile, setIsSavingFile] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -566,6 +593,66 @@ export default function CandidateProfilePage() {
     if (editingCommunicationId === communicationId) {
       resetCommunicationForm();
     }
+  };
+
+  const startFileEdit = (applicationId: string, paperwork?: ApplicationFileRecord) => {
+    setEditingFileApplicationId(applicationId);
+    setFileForm({
+      hasResume: paperwork?.has_resume ?? false,
+      hasFormattedResume: paperwork?.has_formatted_resume ?? false,
+      hasCoverLetter: paperwork?.has_cover_letter ?? false,
+      hasOffer: paperwork?.has_offer ?? false,
+      hasContract: paperwork?.has_contract ?? false,
+      hasOther: paperwork?.has_other ?? false,
+      otherNote: paperwork?.other_note ?? "",
+      folderUrl: paperwork?.folder_url ?? "",
+    });
+    setErrorMessage("");
+  };
+
+  const cancelFileEdit = () => {
+    setEditingFileApplicationId(null);
+    setFileForm(EMPTY_FILE_FORM);
+    setIsSavingFile(false);
+  };
+
+  const handleSaveFile = async (applicationId: string) => {
+    setErrorMessage("");
+    setIsSavingFile(true);
+
+    const { data, error } = await supabase
+      .from("application_files")
+      .upsert(
+        {
+          application_id: applicationId,
+          has_resume: fileForm.hasResume,
+          has_formatted_resume: fileForm.hasFormattedResume,
+          has_cover_letter: fileForm.hasCoverLetter,
+          has_offer: fileForm.hasOffer,
+          has_contract: fileForm.hasContract,
+          has_other: fileForm.hasOther,
+          other_note: fileForm.otherNote.trim() || null,
+          folder_url: fileForm.folderUrl.trim() || null,
+          created_by: currentUserId,
+        },
+        { onConflict: "application_id" },
+      )
+      .select(
+        "id,application_id,has_resume,has_formatted_resume,has_cover_letter,has_offer,has_contract,has_other,other_note,folder_url,updated_at",
+      )
+      .single<ApplicationFileRecord>();
+
+    if (error || !data) {
+      setErrorMessage(error?.message ?? "Failed to save file checklist.");
+      setIsSavingFile(false);
+      return;
+    }
+
+    setApplicationFiles((current) => {
+      const withoutCurrent = current.filter((row) => row.application_id !== applicationId);
+      return [data, ...withoutCurrent];
+    });
+    cancelFileEdit();
   };
 
   const resetApplicationModal = () => {
@@ -1081,6 +1168,7 @@ export default function CandidateProfilePage() {
             <div className={styles.fileRoleList}>
               {applicationRows.map((row) => {
                 const paperwork = applicationFileByApplicationId[row.id];
+                const isEditingThisRow = editingFileApplicationId === row.id;
                 return (
                   <article key={row.id} className={styles.fileRoleCard}>
                     <div className={styles.fileRoleHeader}>
@@ -1097,46 +1185,212 @@ export default function CandidateProfilePage() {
                         Open role
                       </Link>
                     </div>
-                    <div className={styles.fileChecklistRow}>
-                      <span>
-                        Resume: {paperwork?.has_resume ? "Yes" : "No"}
-                      </span>
-                      <span>
-                        Formatted resume:{" "}
-                        {paperwork?.has_formatted_resume ? "Yes" : "No"}
-                      </span>
-                      <span>
-                        Cover letter: {paperwork?.has_cover_letter ? "Yes" : "No"}
-                      </span>
-                      <span>Offer: {paperwork?.has_offer ? "Yes" : "No"}</span>
-                      <span>
-                        Contract: {paperwork?.has_contract ? "Yes" : "No"}
-                      </span>
-                      <span>Other: {paperwork?.has_other ? "Yes" : "No"}</span>
-                    </div>
-                    <dl className={styles.fileDetailGrid}>
-                      <div>
-                        <dt>Folder URL</dt>
-                        <dd>
-                          {paperwork?.folder_url ? (
-                            <a
-                              href={paperwork.folder_url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className={styles.subtleLink}
-                            >
-                              Open folder
-                            </a>
-                          ) : (
-                            "-"
-                          )}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt>Other note</dt>
-                        <dd>{paperwork?.other_note || "-"}</dd>
-                      </div>
-                    </dl>
+                    {isEditingThisRow ? (
+                      <>
+                        <div className={styles.fileChecklistRow}>
+                          <label className={styles.fileCheckItem}>
+                            <input
+                              type="checkbox"
+                              checked={fileForm.hasResume}
+                              onChange={(event) =>
+                                setFileForm((current) => ({
+                                  ...current,
+                                  hasResume: event.target.checked,
+                                }))
+                              }
+                            />
+                            <span>Resume</span>
+                          </label>
+                          <label className={styles.fileCheckItem}>
+                            <input
+                              type="checkbox"
+                              checked={fileForm.hasFormattedResume}
+                              onChange={(event) =>
+                                setFileForm((current) => ({
+                                  ...current,
+                                  hasFormattedResume: event.target.checked,
+                                }))
+                              }
+                            />
+                            <span>Formatted resume</span>
+                          </label>
+                          <label className={styles.fileCheckItem}>
+                            <input
+                              type="checkbox"
+                              checked={fileForm.hasCoverLetter}
+                              onChange={(event) =>
+                                setFileForm((current) => ({
+                                  ...current,
+                                  hasCoverLetter: event.target.checked,
+                                }))
+                              }
+                            />
+                            <span>Cover letter</span>
+                          </label>
+                          <label className={styles.fileCheckItem}>
+                            <input
+                              type="checkbox"
+                              checked={fileForm.hasOffer}
+                              onChange={(event) =>
+                                setFileForm((current) => ({
+                                  ...current,
+                                  hasOffer: event.target.checked,
+                                }))
+                              }
+                            />
+                            <span>Offer</span>
+                          </label>
+                          <label className={styles.fileCheckItem}>
+                            <input
+                              type="checkbox"
+                              checked={fileForm.hasContract}
+                              onChange={(event) =>
+                                setFileForm((current) => ({
+                                  ...current,
+                                  hasContract: event.target.checked,
+                                }))
+                              }
+                            />
+                            <span>Contract</span>
+                          </label>
+                          <label className={styles.fileCheckItem}>
+                            <input
+                              type="checkbox"
+                              checked={fileForm.hasOther}
+                              onChange={(event) =>
+                                setFileForm((current) => ({
+                                  ...current,
+                                  hasOther: event.target.checked,
+                                }))
+                              }
+                            />
+                            <span>Other</span>
+                          </label>
+                        </div>
+                        <div className={styles.fileFormGrid}>
+                          <label className={styles.modalField}>
+                            <span>Folder URL</span>
+                            <input
+                              type="url"
+                              value={fileForm.folderUrl}
+                              onChange={(event) =>
+                                setFileForm((current) => ({
+                                  ...current,
+                                  folderUrl: event.target.value,
+                                }))
+                              }
+                              placeholder="https://"
+                            />
+                          </label>
+                          <label className={styles.modalField}>
+                            <span>Other note</span>
+                            <textarea
+                              rows={3}
+                              value={fileForm.otherNote}
+                              onChange={(event) =>
+                                setFileForm((current) => ({
+                                  ...current,
+                                  otherNote: event.target.value,
+                                }))
+                              }
+                            />
+                          </label>
+                        </div>
+                        <div className={styles.fileActions}>
+                          <button
+                            type="button"
+                            className={styles.submitButton}
+                            onClick={() => handleSaveFile(row.id)}
+                            disabled={isSavingFile}
+                          >
+                            {isSavingFile ? "Saving..." : "Save changes"}
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.cancelButton}
+                            onClick={cancelFileEdit}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className={styles.fileChecklistRow}>
+                          <label className={styles.fileCheckItem}>
+                            <input type="checkbox" checked={paperwork?.has_resume ?? false} readOnly disabled />
+                            <span>Resume</span>
+                          </label>
+                          <label className={styles.fileCheckItem}>
+                            <input
+                              type="checkbox"
+                              checked={paperwork?.has_formatted_resume ?? false}
+                              readOnly
+                              disabled
+                            />
+                            <span>Formatted resume</span>
+                          </label>
+                          <label className={styles.fileCheckItem}>
+                            <input
+                              type="checkbox"
+                              checked={paperwork?.has_cover_letter ?? false}
+                              readOnly
+                              disabled
+                            />
+                            <span>Cover letter</span>
+                          </label>
+                          <label className={styles.fileCheckItem}>
+                            <input type="checkbox" checked={paperwork?.has_offer ?? false} readOnly disabled />
+                            <span>Offer</span>
+                          </label>
+                          <label className={styles.fileCheckItem}>
+                            <input
+                              type="checkbox"
+                              checked={paperwork?.has_contract ?? false}
+                              readOnly
+                              disabled
+                            />
+                            <span>Contract</span>
+                          </label>
+                          <label className={styles.fileCheckItem}>
+                            <input type="checkbox" checked={paperwork?.has_other ?? false} readOnly disabled />
+                            <span>Other</span>
+                          </label>
+                        </div>
+                        <dl className={styles.fileDetailGrid}>
+                          <div>
+                            <dt>Folder URL</dt>
+                            <dd>
+                              {paperwork?.folder_url ? (
+                                <a
+                                  href={paperwork.folder_url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className={styles.subtleLink}
+                                >
+                                  Open folder
+                                </a>
+                              ) : (
+                                "-"
+                              )}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt>Other note</dt>
+                            <dd>{paperwork?.other_note || "-"}</dd>
+                          </div>
+                        </dl>
+                        <div className={styles.fileActions}>
+                          <button
+                            type="button"
+                            className={styles.discreetAction}
+                            onClick={() => startFileEdit(row.id, paperwork)}
+                          >
+                            edit
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </article>
                 );
               })}

@@ -536,6 +536,33 @@
   color: #263f45;
 }
 
+.fileCheckItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+}
+
+.fileCheckItem input {
+  width: 0.95rem;
+  height: 0.95rem;
+  accent-color: #0a9396;
+  opacity: 1;
+}
+
+.fileActions {
+  margin-top: 0.65rem;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.fileFormGrid {
+  margin-top: 0.7rem;
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .fileDetailGrid {
   margin: 0.8rem 0 0;
   display: grid;
@@ -572,6 +599,10 @@
   }
 
   .fileDetailGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .fileFormGrid {
     grid-template-columns: 1fr;
   }
 }
