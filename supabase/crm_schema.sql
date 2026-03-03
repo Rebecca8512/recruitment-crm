@@ -136,7 +136,7 @@ create table if not exists public.contacts (
 create table if not exists public.contact_employments (
   id uuid primary key default gen_random_uuid(),
   contact_id uuid not null references public.contacts(id) on delete cascade,
-  client_id uuid not null references public.clients(id) on delete cascade,
+  client_id uuid references public.clients(id) on delete set null,
   job_title text,
   start_date date,
   end_date date,
@@ -150,7 +150,7 @@ create table if not exists public.contact_employments (
 
 create table if not exists public.roles (
   id uuid primary key default gen_random_uuid(),
-  client_id uuid not null references public.clients(id) on delete cascade,
+  client_id uuid references public.clients(id) on delete set null,
   title text not null,
   status_code text not null default 'intake' references public.role_statuses(code),
   location text,
