@@ -130,7 +130,22 @@ type ProfileRecord = {
   email: string | null;
 };
 
-const TABS = ["Overview", "Contacts", "Roles", "Candidates"] as const;
+type ClientCommunicationNoteRecord = {
+  id: string;
+  client_id: string;
+  role_id: string | null;
+  contact_id: string | null;
+  communication_type: string;
+  activity_type: string;
+  note_body: string;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+const TABS = ["Overview", "Contacts", "Roles", "Candidates", "Notes"] as const;
+const COMMUNICATION_TYPE_OPTIONS = ["Email", "Phone", "Social", "In person"] as const;
+const ACTIVITY_TYPE_OPTIONS = ["Outbound", "Inbound"] as const;
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -161,6 +176,17 @@ export default function ClientProfilePage() {
   const [roleStatusMap, setRoleStatusMap] = useState<Record<string, string>>({});
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [communicationNotes, setCommunicationNotes] = useState<ClientCommunicationNoteRecord[]>(
+    [],
+  );
+  const [communicationType, setCommunicationType] = useState<string>("Email");
+  const [activityType, setActivityType] = useState<string>("Outbound");
+  const [noteRoleId, setNoteRoleId] = useState<string>("");
+  const [noteContactId, setNoteContactId] = useState<string>("");
+  const [noteBody, setNoteBody] = useState("");
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [isSavingNote, setIsSavingNote] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -172,12 +198,26 @@ export default function ClientProfilePage() {
         return;
       }
 
+      const { data: sessionData, error: sessionError } =
+        await supabase.auth.getSession();
+
+      if (!isMounted) return;
+
+      if (sessionError || !sessionData.session?.user) {
+        setErrorMessage("You must be signed in.");
+        setIsLoading(false);
+        return;
+      }
+
+      setCurrentUserId(sessionData.session.user.id);
+
       const [
         { data: clientData, error: clientError },
         { data: statuses },
         { data: employmentsData, error: employmentsError },
         { data: rolesData, error: rolesError },
         { data: roleStatusesData, error: roleStatusesError },
+        { data: clientNotesData, error: clientNotesError },
       ] = await Promise.all([
         supabase
           .from("clients")
@@ -199,6 +239,13 @@ export default function ClientProfilePage() {
           .eq("client_id", clientId)
           .order("updated_at", { ascending: false }),
         supabase.from("role_statuses").select("code,label"),
+        supabase
+          .from("client_communication_notes")
+          .select(
+            "id,client_id,role_id,contact_id,communication_type,activity_type,note_body,created_by,created_at,updated_at",
+          )
+          .eq("client_id", clientId)
+          .order("created_at", { ascending: false }),
       ]);
 
       if (!isMounted) return;
@@ -231,6 +278,17 @@ export default function ClientProfilePage() {
         setErrorMessage(roleStatusesError.message);
         setIsLoading(false);
         return;
+      }
+
+      if (clientNotesError) {
+        const isMissingTable =
+          clientNotesError.message.toLowerCase().includes("does not exist") ||
+          clientNotesError.message.toLowerCase().includes("schema cache");
+        if (!isMissingTable) {
+          setErrorMessage(clientNotesError.message);
+          setIsLoading(false);
+          return;
+        }
       }
 
       const employments = (employmentsData ?? []) as EmploymentRecord[];
@@ -306,6 +364,7 @@ export default function ClientProfilePage() {
       setEmploymentRows(employments);
       setContactRows(contacts);
       setRoleRows((rolesData ?? []) as RoleRecord[]);
+      setCommunicationNotes((clientNotesData ?? []) as ClientCommunicationNoteRecord[]);
       setRoleStatusMap(roleStatuses);
       setIsLoading(false);
     };
@@ -418,6 +477,132 @@ export default function ClientProfilePage() {
     if (!effectiveSelectedRoleId) return null;
     return clientRoles.find((role) => role.id === effectiveSelectedRoleId) ?? null;
   }, [clientRoles, effectiveSelectedRoleId]);
+
+  const contactNameById = useMemo(() => {
+    return contactRows.reduce<Record<string, string>>((acc, row) => {
+      acc[row.id] = `${row.first_name} ${row.last_name}`.trim();
+      return acc;
+    }, {});
+  }, [contactRows]);
+
+  const roleTitleById = useMemo(() => {
+    return roleRows.reduce<Record<string, string>>((acc, row) => {
+      acc[row.id] = row.title;
+      return acc;
+    }, {});
+  }, [roleRows]);
+
+  const resetNoteForm = () => {
+    setCommunicationType("Email");
+    setActivityType("Outbound");
+    setNoteRoleId("");
+    setNoteContactId("");
+    setNoteBody("");
+    setEditingNoteId(null);
+  };
+
+  const handleEditNote = (note: ClientCommunicationNoteRecord) => {
+    setEditingNoteId(note.id);
+    setCommunicationType(note.communication_type);
+    setActivityType(note.activity_type);
+    setNoteRoleId(note.role_id ?? "");
+    setNoteContactId(note.contact_id ?? "");
+    setNoteBody(note.note_body);
+    setErrorMessage("");
+  };
+
+  const handleSaveNote = async () => {
+    if (!clientId || !UUID_PATTERN.test(clientId)) {
+      setErrorMessage("Invalid client id.");
+      return;
+    }
+
+    if (!noteBody.trim()) {
+      setErrorMessage("Communication note is required.");
+      return;
+    }
+
+    setErrorMessage("");
+    setIsSavingNote(true);
+
+    if (editingNoteId) {
+      const { data, error } = await supabase
+        .from("client_communication_notes")
+        .update({
+          communication_type: communicationType,
+          activity_type: activityType,
+          role_id: noteRoleId || null,
+          contact_id: noteContactId || null,
+          note_body: noteBody.trim(),
+        })
+        .eq("id", editingNoteId)
+        .eq("client_id", clientId)
+        .select(
+          "id,client_id,role_id,contact_id,communication_type,activity_type,note_body,created_by,created_at,updated_at",
+        )
+        .single<ClientCommunicationNoteRecord>();
+
+      if (error || !data) {
+        setErrorMessage(error?.message ?? "Failed to update note.");
+        setIsSavingNote(false);
+        return;
+      }
+
+      setCommunicationNotes((current) => current.map((row) => (row.id === data.id ? data : row)));
+      setIsSavingNote(false);
+      resetNoteForm();
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("client_communication_notes")
+      .insert({
+        client_id: clientId,
+        communication_type: communicationType,
+        activity_type: activityType,
+        role_id: noteRoleId || null,
+        contact_id: noteContactId || null,
+        note_body: noteBody.trim(),
+        created_by: currentUserId,
+      })
+      .select(
+        "id,client_id,role_id,contact_id,communication_type,activity_type,note_body,created_by,created_at,updated_at",
+      )
+      .single<ClientCommunicationNoteRecord>();
+
+    if (error || !data) {
+      setErrorMessage(error?.message ?? "Failed to save note.");
+      setIsSavingNote(false);
+      return;
+    }
+
+    setCommunicationNotes((current) => [data, ...current]);
+    setIsSavingNote(false);
+    resetNoteForm();
+  };
+
+  const handleDeleteNote = async (noteId: string) => {
+    if (!clientId || !UUID_PATTERN.test(clientId)) {
+      setErrorMessage("Invalid client id.");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("client_communication_notes")
+      .delete()
+      .eq("id", noteId)
+      .eq("client_id", clientId);
+
+    if (error) {
+      setErrorMessage(error.message);
+      return;
+    }
+
+    setCommunicationNotes((current) => current.filter((row) => row.id !== noteId));
+    if (editingNoteId === noteId) {
+      resetNoteForm();
+    }
+  };
 
   if (isLoading) {
     return (
@@ -931,10 +1116,135 @@ export default function ClientProfilePage() {
         </>
       ) : null}
 
-      {activeTab !== "Overview" && activeTab !== "Contacts" && activeTab !== "Roles" ? (
+      {activeTab === "Notes" ? (
         <section className={styles.detailsCard}>
           <div className={styles.detailsHeader}>
-            <h2 className={styles.detailsTitle}>{activeTab}</h2>
+            <h2 className={styles.detailsTitle}>Notes</h2>
+          </div>
+          <div className={styles.communicationForm}>
+            <div className={styles.communicationFormTop}>
+              <label className={styles.modalField}>
+                <span>Type</span>
+                <select
+                  value={communicationType}
+                  onChange={(event) => setCommunicationType(event.target.value)}
+                >
+                  {COMMUNICATION_TYPE_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className={styles.modalField}>
+                <span>Activity</span>
+                <select
+                  value={activityType}
+                  onChange={(event) => setActivityType(event.target.value)}
+                >
+                  {ACTIVITY_TYPE_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className={styles.modalField}>
+                <span>Contact</span>
+                <select
+                  value={noteContactId}
+                  onChange={(event) => setNoteContactId(event.target.value)}
+                >
+                  <option value="">Not selected</option>
+                  {contactRows.map((contact) => (
+                    <option key={contact.id} value={contact.id}>
+                      {contact.first_name} {contact.last_name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className={styles.modalField}>
+                <span>Role</span>
+                <select
+                  value={noteRoleId}
+                  onChange={(event) => setNoteRoleId(event.target.value)}
+                >
+                  <option value="">Not selected</option>
+                  {roleRows.map((role) => (
+                    <option key={role.id} value={role.id}>
+                      {role.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <label className={styles.modalField}>
+              <span>Communication</span>
+              <textarea
+                rows={5}
+                value={noteBody}
+                onChange={(event) => setNoteBody(event.target.value)}
+              />
+            </label>
+            <div className={styles.communicationActions}>
+              <button
+                type="button"
+                className={styles.submitButton}
+                onClick={handleSaveNote}
+                disabled={isSavingNote}
+              >
+                {isSavingNote ? "Saving..." : editingNoteId ? "Save changes" : "Save note"}
+              </button>
+              {editingNoteId ? (
+                <button type="button" className={styles.cancelButton} onClick={resetNoteForm}>
+                  Cancel
+                </button>
+              ) : null}
+            </div>
+          </div>
+          <div className={styles.communicationList}>
+            {communicationNotes.length > 0 ? (
+              communicationNotes.map((note) => (
+                <article key={note.id} className={styles.communicationItem}>
+                  <div className={styles.communicationItemHeader}>
+                    <div className={styles.communicationMeta}>
+                      <span>{note.communication_type}</span>
+                      <span>{note.activity_type}</span>
+                      <span>{new Date(note.created_at).toLocaleString("en-GB")}</span>
+                      <span>{note.contact_id ? contactNameById[note.contact_id] ?? "-" : "No contact"}</span>
+                      <span>{note.role_id ? roleTitleById[note.role_id] ?? "-" : "No role"}</span>
+                    </div>
+                    <div className={styles.communicationMetaActions}>
+                      <button
+                        type="button"
+                        className={styles.discreetAction}
+                        onClick={() => handleEditNote(note)}
+                      >
+                        edit
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.discreetAction}
+                        onClick={() => handleDeleteNote(note.id)}
+                      >
+                        delete
+                      </button>
+                    </div>
+                  </div>
+                  <p className={styles.communicationBody}>{note.note_body}</p>
+                </article>
+              ))
+            ) : (
+              <p className={styles.infoText}>No communication notes yet.</p>
+            )}
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "Candidates" ? (
+        <section className={styles.detailsCard}>
+          <div className={styles.detailsHeader}>
+            <h2 className={styles.detailsTitle}>Candidates</h2>
           </div>
         </section>
       ) : null}

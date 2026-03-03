@@ -55,6 +55,11 @@ type ApplicationRow = {
   role_id: string;
 };
 
+type ClientNoteRow = {
+  client_id: string;
+  updated_at: string;
+};
+
 export default function ClientsPage() {
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
 
@@ -86,6 +91,7 @@ export default function ClientsPage() {
         { data: employmentsData, error: employmentsError },
         { data: candidatesData, error: candidatesError },
         { data: applicationsData, error: applicationsError },
+        { data: clientNotesData, error: clientNotesError },
       ] = await Promise.all([
         supabase.from("client_statuses").select("code,label"),
         supabase
@@ -99,6 +105,7 @@ export default function ClientsPage() {
           .select("contact_id,client_id,is_primary,start_date,end_date"),
         supabase.from("candidates").select("id,first_name,last_name"),
         supabase.from("applications").select("candidate_id,role_id"),
+        supabase.from("client_communication_notes").select("client_id,updated_at"),
       ]);
 
       if (!isMounted) return;
@@ -145,6 +152,17 @@ export default function ClientsPage() {
         return;
       }
 
+      if (clientNotesError) {
+        const isMissingTable =
+          clientNotesError.message.toLowerCase().includes("does not exist") ||
+          clientNotesError.message.toLowerCase().includes("schema cache");
+        if (!isMissingTable) {
+          setErrorMessage(clientNotesError.message);
+          setIsLoading(false);
+          return;
+        }
+      }
+
       const map = ((statusData ?? []) as StatusRow[]).reduce<
         Record<string, string>
       >((acc, row) => {
@@ -171,11 +189,23 @@ export default function ClientsPage() {
       }
 
       const clientsRows = (clientsData ?? []) as ClientRow[];
+      const clientNoteLastActivity: Record<string, number> = {};
+      for (const note of (clientNotesData ?? []) as ClientNoteRow[]) {
+        const noteUpdated = new Date(note.updated_at).getTime();
+        clientNoteLastActivity[note.client_id] = Math.max(
+          clientNoteLastActivity[note.client_id] ?? 0,
+          noteUpdated,
+        );
+      }
       const lastActivity: Record<string, string> = {};
 
       for (const client of clientsRows) {
         const clientUpdated = new Date(client.updated_at).getTime();
-        const latest = Math.max(clientUpdated, roleLastActivity[client.id] ?? 0);
+        const latest = Math.max(
+          clientUpdated,
+          roleLastActivity[client.id] ?? 0,
+          clientNoteLastActivity[client.id] ?? 0,
+        );
         lastActivity[client.id] = new Date(latest).toISOString();
       }
 
