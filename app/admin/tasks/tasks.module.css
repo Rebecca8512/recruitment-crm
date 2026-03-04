@@ -1,0 +1,285 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.header {
+  margin-bottom: 0.2rem;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.11em;
+  color: #0a5254;
+}
+
+.title {
+  margin: 0.25rem 0 0;
+  font-size: clamp(1.7rem, 3vw, 2.2rem);
+  color: #00171b;
+}
+
+.card {
+  border: 1px solid rgba(0, 15, 20, 0.1);
+  border-radius: 1rem;
+  padding: 1.2rem;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 18px 30px rgba(0, 15, 20, 0.08);
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.formGrid {
+  margin-top: 0.9rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: 0.9rem;
+}
+
+.field span {
+  color: #1f363b;
+  font-size: 0.92rem;
+}
+
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  border: 1px solid rgba(0, 15, 20, 0.2);
+  border-radius: 0.68rem;
+  padding: 0.58rem 0.7rem;
+  background: #ffffff;
+  color: #123036;
+  font: inherit;
+}
+
+.field textarea {
+  resize: vertical;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: none;
+  border-color: #0a9396;
+  box-shadow: 0 0 0 3px rgba(10, 147, 150, 0.16);
+}
+
+.formActions {
+  margin-top: 0.85rem;
+  display: flex;
+  gap: 0.55rem;
+}
+
+.primaryButton {
+  border: 1px solid rgba(0, 15, 20, 0.2);
+  border-radius: 0.62rem;
+  background: #ffffff;
+  color: #001418;
+  padding: 0.58rem 0.86rem;
+  cursor: pointer;
+}
+
+.primaryButton:hover:not(:disabled) {
+  border-color: #c5e7dc;
+  color: #0a5254;
+  background: #c5e7dc;
+}
+
+.primaryButton:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.tableWrap {
+  margin-top: 0.95rem;
+  overflow-x: auto;
+}
+
+.dataTable {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 720px;
+}
+
+.dataTable th {
+  text-align: left;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #345056;
+  padding: 0.7rem;
+  border-bottom: 1px solid rgba(0, 15, 20, 0.14);
+}
+
+.dataTable td {
+  padding: 0.75rem 0.7rem;
+  border-bottom: 1px solid rgba(0, 15, 20, 0.08);
+  color: #1c3237;
+  vertical-align: middle;
+}
+
+.selectedRow {
+  background: #eef9f6;
+}
+
+.tableActionButton {
+  display: inline-flex;
+  border: 1px solid rgba(0, 15, 20, 0.2);
+  border-radius: 0.58rem;
+  background: #ffffff;
+  color: #001418;
+  padding: 0.4rem 0.68rem;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.tableActionButton:hover {
+  border-color: #0a9396;
+  color: #0a5254;
+  background: #c5e7dc;
+}
+
+.detailsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+
+.statusActions {
+  display: inline-flex;
+  gap: 0.65rem;
+}
+
+.linkButton {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: #0a5254;
+  text-decoration: underline;
+  text-underline-offset: 0.15rem;
+  cursor: pointer;
+}
+
+.linkButton:hover {
+  color: #063f40;
+}
+
+.detailsGrid {
+  margin-top: 0.9rem;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.metaLabel {
+  margin: 0;
+  color: #4a656b;
+  text-transform: uppercase;
+  letter-spacing: 0.11em;
+  font-size: 0.76rem;
+}
+
+.metaValue {
+  margin: 0.28rem 0 0;
+  color: #133036;
+}
+
+.relatedWrap {
+  margin-top: 1rem;
+}
+
+.linkList {
+  margin: 0.55rem 0 0;
+  padding-left: 1rem;
+}
+
+.linkList li + li {
+  margin-top: 0.4rem;
+}
+
+.entityLink {
+  color: inherit;
+  text-decoration-line: underline;
+  text-decoration-color: #c5e7dc;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.14rem;
+  margin-right: 0.7rem;
+}
+
+.entityLink:hover {
+  text-decoration-color: #9fd7c5;
+}
+
+.notesWrap {
+  margin-top: 1rem;
+}
+
+.noteList {
+  margin: 0.7rem 0 0;
+  padding-left: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.noteList li {
+  border: 1px solid rgba(0, 15, 20, 0.12);
+  border-radius: 0.72rem;
+  background: #ffffff;
+  padding: 0.65rem 0.75rem;
+}
+
+.noteDate {
+  margin: 0;
+  color: #4a656b;
+  font-size: 0.82rem;
+}
+
+.noteBody {
+  margin: 0.35rem 0 0;
+  color: #17353a;
+  white-space: pre-wrap;
+}
+
+.infoText {
+  margin: 0.8rem 0 0;
+  color: #2a3d41;
+}
+
+.errorText {
+  margin: 0.8rem 0 0;
+  color: #8f1b13;
+}
+
+@media (max-width: 980px) {
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .detailsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .detailsGrid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -9,6 +9,7 @@ import styles from "./admin-shell.module.css";
 const NAV_ITEMS = [
   { href: "/admin/dashboard", label: "Dashboard" },
   { href: "/admin/pipelines", label: "Pipelines" },
+  { href: "/admin/tasks", label: "Tasks" },
   { href: "/admin/clients", label: "Clients" },
   { href: "/admin/contacts", label: "Contacts" },
   { href: "/admin/roles", label: "Roles" },
@@ -40,6 +41,12 @@ const ADD_OPTIONS = [
     description: "Capture a candidate profile, with or without an active role.",
     isReady: true,
   },
+  {
+    id: "task",
+    label: "Task",
+    description: "Plan and track follow-ups with linked CRM records.",
+    isReady: true,
+  },
 ] as const;
 
 type ProfileRole = "admin" | "staff";
@@ -50,6 +57,7 @@ const ADD_ROUTES: Partial<Record<AddOptionId, string>> = {
   contact: "/admin/contacts/new",
   role: "/admin/roles/new",
   candidate: "/admin/candidates/new",
+  task: "/admin/tasks",
 };
 
 export default function AdminLayout({
