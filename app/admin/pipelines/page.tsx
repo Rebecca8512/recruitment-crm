@@ -7,7 +7,6 @@ import {
   EntitySearch,
   type EntitySearchOption,
 } from "@/src/components/search/entity-search";
-import { StatusFilter } from "@/src/components/filters/status-filter";
 import { getSupabaseBrowserClient } from "@/src/lib/supabase";
 import styles from "./pipelines.module.css";
 
@@ -87,6 +86,8 @@ type AppStageId =
   | "interview"
   | "offer"
   | "placed"
+  | "filled_pending_rebate"
+  | "filled_won"
   | "rejected"
   | "withdrawn";
 
@@ -130,8 +131,6 @@ type RoleApplicationCard = {
   submittedOn: string | null;
   updatedAt: string;
 };
-
-type AgeFilterValue = "any" | "7" | "14" | "30";
 
 type DragPayload =
   | { kind: "bd"; id: string }
@@ -251,6 +250,16 @@ const APPLICATION_STAGES: StageConfig<AppStageId>[] = [
     tooltip: "Candidate started in role.",
   },
   {
+    id: "filled_pending_rebate",
+    label: "Filled - pending rebate",
+    tooltip: "Candidate placed, waiting for rebate period to clear.",
+  },
+  {
+    id: "filled_won",
+    label: "Filled - Won",
+    tooltip: "Rebate window cleared and placement is fully earned.",
+  },
+  {
     id: "rejected",
     label: "Rejected",
     tooltip: "Application closed as rejected.",
@@ -260,17 +269,6 @@ const APPLICATION_STAGES: StageConfig<AppStageId>[] = [
     label: "Withdrawn",
     tooltip: "Candidate withdrew from the process.",
   },
-];
-
-const DEFAULT_BD_STAGE_IDS = BD_STAGES.map((stage) => stage.id);
-const DEFAULT_RT_STAGE_IDS = RT_STAGES.map((stage) => stage.id);
-const DEFAULT_APP_STAGE_IDS = APPLICATION_STAGES.map((stage) => stage.id);
-
-const AGE_FILTER_OPTIONS: { value: AgeFilterValue; label: string }[] = [
-  { value: "any", label: "Any Age" },
-  { value: "7", label: "7+ Days" },
-  { value: "14", label: "14+ Days" },
-  { value: "30", label: "30+ Days" },
 ];
 
 const BD_STAGE_OVERRIDES_KEY = "crm:bd-stage-overrides:v1";
@@ -289,6 +287,8 @@ function parseAppStage(value: string | null): AppStageId {
     case "interview":
     case "offer":
     case "placed":
+    case "filled_pending_rebate":
+    case "filled_won":
     case "rejected":
     case "withdrawn":
       return value;
@@ -412,12 +412,8 @@ export default function PipelinesPage() {
 
   const [selectedBDSearch, setSelectedBDSearch] =
     useState<EntitySearchOption | null>(null);
-  const [selectedBDStageIds, setSelectedBDStageIds] = useState<string[]>(
-    DEFAULT_BD_STAGE_IDS,
-  );
-  const [bdAgeFilter, setBdAgeFilter] = useState<AgeFilterValue>("any");
   const [collapsedBDStageIds, setCollapsedBDStageIds] = useState<Set<BDStageId>>(
-    new Set(),
+    new Set(["closed_lost"]),
   );
   const [bdStageOverrides, setBdStageOverrides] = useState<
     Record<string, BDStageId>
@@ -433,12 +429,8 @@ export default function PipelinesPage() {
 
   const [selectedRTSearch, setSelectedRTSearch] =
     useState<EntitySearchOption | null>(null);
-  const [selectedRTStageIds, setSelectedRTStageIds] = useState<string[]>(
-    DEFAULT_RT_STAGE_IDS,
-  );
-  const [rtAgeFilter, setRtAgeFilter] = useState<AgeFilterValue>("any");
   const [collapsedRTStageIds, setCollapsedRTStageIds] = useState<Set<RTStageId>>(
-    new Set(),
+    new Set(["closed_lost"]),
   );
   const [rtStageOverrides, setRtStageOverrides] = useState<
     Record<string, RTStageId>
@@ -452,14 +444,8 @@ export default function PipelinesPage() {
     }
   });
 
-  const [selectedAppSearch, setSelectedAppSearch] =
-    useState<EntitySearchOption | null>(null);
-  const [selectedAppStageIds, setSelectedAppStageIds] = useState<string[]>(
-    DEFAULT_APP_STAGE_IDS,
-  );
-  const [appAgeFilter, setAppAgeFilter] = useState<AgeFilterValue>("any");
   const [collapsedAppStageIds, setCollapsedAppStageIds] = useState<Set<AppStageId>>(
-    new Set(),
+    new Set(["rejected", "withdrawn"]),
   );
   const [dragPayload, setDragPayload] = useState<DragPayload | null>(null);
 
@@ -750,79 +736,30 @@ export default function PipelinesPage() {
     );
   }, [applicantRoleSearchOptions, selectedRoleId]);
 
-  const appSearchOptions = useMemo<EntitySearchOption[]>(() => {
-    return selectedRoleApplications.map((row) => ({
-      key: `candidate:${row.candidateId}:${row.applicationId}`,
-      entityId: row.candidateId,
-      entityType: "candidate",
-      label: row.candidateName,
-      subtitle: `in ${APPLICATION_STAGES.find((stage) => stage.id === row.stageId)?.label ?? "Applied"}`,
-      searchText: `${row.candidateName} candidate`,
-    }));
-  }, [selectedRoleApplications]);
-
-  const bdAgeThreshold = useMemo(() => {
-    if (bdAgeFilter === "any") return 0;
-    return parseInt(bdAgeFilter, 10);
-  }, [bdAgeFilter]);
-
-  const rtAgeThreshold = useMemo(() => {
-    if (rtAgeFilter === "any") return 0;
-    return parseInt(rtAgeFilter, 10);
-  }, [rtAgeFilter]);
-
-  const appAgeThreshold = useMemo(() => {
-    if (appAgeFilter === "any") return 0;
-    return parseInt(appAgeFilter, 10);
-  }, [appAgeFilter]);
-
   const filteredBDCards = useMemo(() => {
-    const byStage = bdCards.filter((card) => selectedBDStageIds.includes(card.stageId));
-    const byAge =
-      bdAgeThreshold > 0
-        ? byStage.filter((card) => toAgeInDays(card.updatedAt) >= bdAgeThreshold)
-        : byStage;
+    if (!selectedBDSearch) return bdCards;
+    if (selectedBDSearch.entityType !== "client") return bdCards;
 
-    if (!selectedBDSearch) return byAge;
-    if (selectedBDSearch.entityType !== "client") return byAge;
-
-    return byAge.filter((card) => card.clientId === selectedBDSearch.entityId);
-  }, [bdAgeThreshold, bdCards, selectedBDSearch, selectedBDStageIds]);
+    return bdCards.filter((card) => card.clientId === selectedBDSearch.entityId);
+  }, [bdCards, selectedBDSearch]);
 
   const filteredRTCards = useMemo(() => {
-    const byStage = rtCards.filter((card) => selectedRTStageIds.includes(card.stageId));
-    const byAge =
-      rtAgeThreshold > 0
-        ? byStage.filter((card) => toAgeInDays(card.updatedAt) >= rtAgeThreshold)
-        : byStage;
-
-    if (!selectedRTSearch) return byAge;
+    if (!selectedRTSearch) return rtCards;
 
     if (selectedRTSearch.entityType === "role") {
-      return byAge.filter((card) => card.roleId === selectedRTSearch.entityId);
+      return rtCards.filter((card) => card.roleId === selectedRTSearch.entityId);
     }
 
     if (selectedRTSearch.entityType === "client") {
-      return byAge.filter((card) => card.clientId === selectedRTSearch.entityId);
+      return rtCards.filter((card) => card.clientId === selectedRTSearch.entityId);
     }
 
-    return byAge;
-  }, [rtAgeThreshold, rtCards, selectedRTSearch, selectedRTStageIds]);
+    return rtCards;
+  }, [rtCards, selectedRTSearch]);
 
   const filteredRoleApplications = useMemo(() => {
-    const byStage = selectedRoleApplications.filter((card) =>
-      selectedAppStageIds.includes(card.stageId),
-    );
-    const byAge =
-      appAgeThreshold > 0
-        ? byStage.filter((card) => toAgeInDays(card.updatedAt) >= appAgeThreshold)
-        : byStage;
-
-    if (!selectedAppSearch) return byAge;
-    if (selectedAppSearch.entityType !== "candidate") return byAge;
-
-    return byAge.filter((card) => card.candidateId === selectedAppSearch.entityId);
-  }, [appAgeThreshold, selectedAppSearch, selectedAppStageIds, selectedRoleApplications]);
+    return selectedRoleApplications;
+  }, [selectedRoleApplications]);
 
   const bdCardsByStage = useMemo(() => {
     const grouped: Record<BDStageId, BDPipelineCard[]> = {
@@ -876,6 +813,8 @@ export default function PipelinesPage() {
       interview: [],
       offer: [],
       placed: [],
+      filled_pending_rebate: [],
+      filled_won: [],
       rejected: [],
       withdrawn: [],
     };
@@ -1065,30 +1004,6 @@ export default function PipelinesPage() {
                 onClear={() => setSelectedBDSearch(null)}
                 placeholder="Search"
               />
-              <StatusFilter
-                options={BD_STAGES.map((stage) => ({
-                  value: stage.id,
-                  label: stage.label,
-                }))}
-                selectedValues={selectedBDStageIds}
-                onChange={setSelectedBDStageIds}
-                onReset={() => setSelectedBDStageIds(DEFAULT_BD_STAGE_IDS)}
-              />
-              <label className={styles.ageFilter}>
-                <span>Age</span>
-                <select
-                  value={bdAgeFilter}
-                  onChange={(event) =>
-                    setBdAgeFilter(event.target.value as AgeFilterValue)
-                  }
-                >
-                  {AGE_FILTER_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
               <span
                 className={styles.helpIcon}
                 tabIndex={0}
@@ -1198,30 +1113,6 @@ export default function PipelinesPage() {
                 onClear={() => setSelectedRTSearch(null)}
                 placeholder="Search"
               />
-              <StatusFilter
-                options={RT_STAGES.map((stage) => ({
-                  value: stage.id,
-                  label: stage.label,
-                }))}
-                selectedValues={selectedRTStageIds}
-                onChange={setSelectedRTStageIds}
-                onReset={() => setSelectedRTStageIds(DEFAULT_RT_STAGE_IDS)}
-              />
-              <label className={styles.ageFilter}>
-                <span>Age</span>
-                <select
-                  value={rtAgeFilter}
-                  onChange={(event) =>
-                    setRtAgeFilter(event.target.value as AgeFilterValue)
-                  }
-                >
-                  {AGE_FILTER_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
               <span
                 className={styles.helpIcon}
                 tabIndex={0}
@@ -1365,37 +1256,6 @@ export default function PipelinesPage() {
               />
               {selectedRole ? (
                 <>
-                  <EntitySearch
-                    options={appSearchOptions}
-                    selected={selectedAppSearch}
-                    onSelect={(option) => setSelectedAppSearch(option)}
-                    onClear={() => setSelectedAppSearch(null)}
-                    placeholder="Search"
-                  />
-                  <StatusFilter
-                    options={APPLICATION_STAGES.map((stage) => ({
-                      value: stage.id,
-                      label: stage.label,
-                    }))}
-                    selectedValues={selectedAppStageIds}
-                    onChange={setSelectedAppStageIds}
-                    onReset={() => setSelectedAppStageIds(DEFAULT_APP_STAGE_IDS)}
-                  />
-                  <label className={styles.ageFilter}>
-                    <span>Age</span>
-                    <select
-                      value={appAgeFilter}
-                      onChange={(event) =>
-                        setAppAgeFilter(event.target.value as AgeFilterValue)
-                      }
-                    >
-                      {AGE_FILTER_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
                   <span
                     className={styles.helpIcon}
                     tabIndex={0}
