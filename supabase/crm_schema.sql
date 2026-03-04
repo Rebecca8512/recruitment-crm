@@ -38,6 +38,7 @@ create table if not exists public.client_statuses (
 create table if not exists public.role_statuses (
   code text primary key,
   label text not null unique,
+  help_text text,
   sort_order integer not null default 0,
   is_active boolean not null default true,
   created_at timestamptz not null default timezone('utc', now()),
@@ -73,16 +74,15 @@ values
   ('closed', 'Closed', 'Have never worked with us / DNC', 60)
 on conflict (code) do nothing;
 
-insert into public.role_statuses (code, label, sort_order)
+insert into public.role_statuses (code, label, help_text, sort_order)
 values
-  ('intake', 'Intake', 10),
-  ('sourcing', 'Sourcing', 20),
-  ('shortlist', 'Shortlist', 30),
-  ('interview', 'Interview', 40),
-  ('offer', 'Offer', 50),
-  ('placed', 'Placed', 60),
-  ('on_hold', 'On Hold', 70),
-  ('closed_lost', 'Closed Lost', 80)
+  ('pending', 'Pending', 'The job is being scoped, but not live yet', 10),
+  ('active', 'ACTIVE', 'Actively working to fill this role', 20),
+  ('filled', 'Filled', 'Role has been successfully filled, pending rebate', 30),
+  ('won', 'Won', 'The full fee is earned. CONGRATULATIONS!', 40),
+  ('paused', 'Paused', 'Client temporarily paused the recruitment process', 50),
+  ('lost', 'Lost', 'Role filled elsewhere or direct with client', 60),
+  ('cancelled', 'Cancelled', 'Role has been pulled', 70)
 on conflict (code) do nothing;
 
 insert into public.candidate_statuses (code, label, sort_order)
@@ -200,7 +200,7 @@ create table if not exists public.roles (
   title text not null,
   owner_user_id uuid references auth.users(id),
   target_date date,
-  status_code text not null default 'intake' references public.role_statuses(code),
+  status_code text not null default 'pending' references public.role_statuses(code),
   industry text,
   job_type text not null default 'full_time',
   salary_text text,

@@ -57,6 +57,7 @@ type ContactEmployment = {
 type RoleStatus = {
   code: string;
   label: string;
+  help_text: string | null;
   sort_order: number;
 };
 
@@ -148,7 +149,7 @@ export default function NewRolePage() {
   const [clientId, setClientId] = useState("");
   const [contactId, setContactId] = useState("");
   const [targetDate, setTargetDate] = useState("");
-  const [jobStatus, setJobStatus] = useState("intake");
+  const [jobStatus, setJobStatus] = useState("pending");
   const [industry, setIndustry] = useState("");
   const [jobType, setJobType] = useState("full_time");
   const [salaryText, setSalaryText] = useState("");
@@ -218,7 +219,8 @@ export default function NewRolePage() {
           .select("contact_id,client_id,is_primary,start_date,end_date"),
         supabase
           .from("role_statuses")
-          .select("code,label,sort_order")
+          .select("code,label,help_text,sort_order,is_active")
+          .eq("is_active", true)
           .order("sort_order", { ascending: true }),
       ]);
 
@@ -388,7 +390,7 @@ export default function NewRolePage() {
       owner_user_id: ownerUserId,
       created_by: ownerUserId,
       target_date: targetDate || null,
-      status_code: jobStatus || "intake",
+      status_code: jobStatus || "pending",
       industry: industry.trim() || null,
       job_type: jobType,
       salary_text: salaryText.trim() || null,
@@ -421,7 +423,7 @@ export default function NewRolePage() {
         error.message.includes("column") || error.message.includes("schema cache");
       setErrorMessage(
         isSchemaMismatch
-          ? "Roles table is missing new fields. Run supabase/role_form_patch.sql and retry."
+          ? "Role schema is missing fields. Run supabase/role_form_patch.sql and supabase/role_statuses_refresh_patch.sql, then retry."
           : error.message,
       );
       setIsSaving(false);
@@ -518,7 +520,24 @@ export default function NewRolePage() {
             </label>
 
             <label className={styles.field}>
-              <span className={styles.label}>Job status</span>
+              <span className={styles.labelWithHelp}>
+                <span className={styles.label}>Job status</span>
+                <span
+                  className={styles.helpIcon}
+                  tabIndex={0}
+                  aria-label="Role status definitions"
+                >
+                  i
+                  <span className={styles.helpTooltip}>
+                    {roleStatuses.map((status) => (
+                      <span key={status.code} className={styles.helpTooltipLine}>
+                        <strong>{status.label}:</strong>{" "}
+                        {status.help_text ?? "No description set."}
+                      </span>
+                    ))}
+                  </span>
+                </span>
+              </span>
               <select
                 value={jobStatus}
                 onChange={(event) => setJobStatus(event.target.value)}

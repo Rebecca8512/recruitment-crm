@@ -98,7 +98,11 @@ export default function RolesPage() {
         { data: candidatesData, error: candidatesError },
         { data: applicationsData, error: applicationsError },
       ] = await Promise.all([
-        supabase.from("role_statuses").select("code,label"),
+        supabase
+          .from("role_statuses")
+          .select("code,label")
+          .eq("is_active", true)
+          .order("sort_order", { ascending: true }),
         supabase
           .from("roles")
           .select(
@@ -167,7 +171,7 @@ export default function RolesPage() {
       const statusRows = (statusesData ?? []) as StatusRow[];
       const defaults = statusRows
         .map((row) => row.code)
-        .filter((code) => code !== "on_hold" && code !== "closed_lost");
+        .filter((code) => code !== "paused" && code !== "lost");
 
       setStatusMap(map);
       setRoles((rolesData ?? []) as RoleRow[]);
