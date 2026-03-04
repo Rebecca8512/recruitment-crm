@@ -5,7 +5,7 @@ type PipelineView = "business-development" | "vacancy-fill";
 
 const VIEW_OPTIONS: { value: PipelineView; label: string }[] = [
   { value: "business-development", label: "Business Development" },
-  { value: "vacancy-fill", label: "Vacancy Fill" },
+  { value: "vacancy-fill", label: "Role Tracker" },
 ];
 
 function resolveView(view: string | undefined): PipelineView {
@@ -51,7 +51,7 @@ export default async function PipelinesPage({
         <h2 className={styles.cardTitle}>
           {view === "business-development"
             ? "Business Development Pipeline"
-            : "Vacancy Fill Pipeline"}
+            : "Role Tracker Pipeline"}
         </h2>
         <p className={styles.placeholderText}>Pipeline stages will be added here.</p>
       </section>

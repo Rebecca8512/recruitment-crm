@@ -26,6 +26,7 @@ type RoleRow = {
 type StatusRow = {
   code: string;
   label: string;
+  help_text: string | null;
 };
 
 type ClientRow = {
@@ -100,7 +101,7 @@ export default function RolesPage() {
       ] = await Promise.all([
         supabase
           .from("role_statuses")
-          .select("code,label")
+          .select("code,label,help_text")
           .eq("is_active", true)
           .order("sort_order", { ascending: true }),
         supabase
@@ -169,9 +170,10 @@ export default function RolesPage() {
         return acc;
       }, {});
       const statusRows = (statusesData ?? []) as StatusRow[];
-      const defaults = statusRows
-        .map((row) => row.code)
-        .filter((code) => code !== "paused" && code !== "lost");
+      const preferredDefaultCodes = ["pending", "active", "filled"];
+      const defaults = preferredDefaultCodes.filter((code) =>
+        statusRows.some((row) => row.code === code),
+      );
 
       setStatusMap(map);
       setRoles((rolesData ?? []) as RoleRow[]);
@@ -393,12 +395,32 @@ export default function RolesPage() {
             onClear={() => setSelectedSearchOption(null)}
             placeholder="Search"
           />
-          <StatusFilter
-            options={statusOptions.map((row) => ({ value: row.code, label: row.label }))}
-            selectedValues={selectedStatusCodes}
-            onChange={setSelectedStatusCodes}
-            onReset={() => setSelectedStatusCodes(defaultStatusCodes)}
-          />
+          <div className={styles.filterWithHelp}>
+            <StatusFilter
+              options={statusOptions.map((row) => ({
+                value: row.code,
+                label: row.label,
+              }))}
+              selectedValues={selectedStatusCodes}
+              onChange={setSelectedStatusCodes}
+              onReset={() => setSelectedStatusCodes(defaultStatusCodes)}
+            />
+            <span
+              className={styles.statusHelpIcon}
+              tabIndex={0}
+              aria-label="Role status definitions"
+            >
+              i
+              <span className={styles.statusHelpTooltip}>
+                {statusOptions.map((row) => (
+                  <span key={row.code} className={styles.statusHelpLine}>
+                    <strong>{row.label}:</strong>{" "}
+                    {row.help_text ?? "No description set."}
+                  </span>
+                ))}
+              </span>
+            </span>
+          </div>
         </div>
       </header>
 

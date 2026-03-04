@@ -21,6 +21,7 @@ type ClientRow = {
 type StatusRow = {
   code: string;
   label: string;
+  help_text: string | null;
 };
 
 type RoleRow = {
@@ -99,8 +100,9 @@ export default function ClientsPage() {
       ] = await Promise.all([
         supabase
           .from("client_statuses")
-          .select("code,label")
-          .eq("is_active", true),
+          .select("code,label,help_text")
+          .eq("is_active", true)
+          .order("sort_order", { ascending: true }),
         supabase
           .from("clients")
           .select("id,name,contact_number,status_code,updated_at")
@@ -177,16 +179,12 @@ export default function ClientsPage() {
         return acc;
       }, {});
       const statusRows = (statusData ?? []) as StatusRow[];
-      const activeStatusCodes = statusRows
-        .filter(
-          (row) =>
-            row.code === "active" || row.label.trim().toLowerCase() === "active",
-        )
-        .map((row) => row.code);
-      const defaults =
-        activeStatusCodes.length > 0
-          ? activeStatusCodes
-          : statusRows.map((row) => row.code);
+      const preferredDefaultCodes = ["prospect", "warm_lead", "active"];
+      const defaults = preferredDefaultCodes.filter((code) =>
+        statusRows.some((row) => row.code === code),
+      );
+      const resolvedDefaults =
+        defaults.length > 0 ? defaults : statusRows.map((row) => row.code);
 
       const roleRows = (rolesData ?? []) as RoleRow[];
       const openRoles: Record<string, number> = {};
@@ -237,8 +235,8 @@ export default function ClientsPage() {
       setCandidates((candidatesData ?? []) as CandidateRow[]);
       setApplications((applicationsData ?? []) as ApplicationRow[]);
       setStatusOptions(statusRows);
-      setDefaultStatusCodes(defaults);
-      setSelectedStatusCodes(defaults);
+      setDefaultStatusCodes(resolvedDefaults);
+      setSelectedStatusCodes(resolvedDefaults);
       setIsLoading(false);
     };
 
@@ -441,12 +439,32 @@ export default function ClientsPage() {
             onClear={() => setSelectedSearchOption(null)}
             placeholder="Search"
           />
-          <StatusFilter
-            options={statusOptions.map((row) => ({ value: row.code, label: row.label }))}
-            selectedValues={selectedStatusCodes}
-            onChange={setSelectedStatusCodes}
-            onReset={() => setSelectedStatusCodes(defaultStatusCodes)}
-          />
+          <div className={styles.filterWithHelp}>
+            <StatusFilter
+              options={statusOptions.map((row) => ({
+                value: row.code,
+                label: row.label,
+              }))}
+              selectedValues={selectedStatusCodes}
+              onChange={setSelectedStatusCodes}
+              onReset={() => setSelectedStatusCodes(defaultStatusCodes)}
+            />
+            <span
+              className={styles.statusHelpIcon}
+              tabIndex={0}
+              aria-label="Client status definitions"
+            >
+              i
+              <span className={styles.statusHelpTooltip}>
+                {statusOptions.map((row) => (
+                  <span key={row.code} className={styles.statusHelpLine}>
+                    <strong>{row.label}:</strong>{" "}
+                    {row.help_text ?? "No description set."}
+                  </span>
+                ))}
+              </span>
+            </span>
+          </div>
         </div>
       </header>
 

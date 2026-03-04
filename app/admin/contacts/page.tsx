@@ -58,6 +58,7 @@ type ApplicationRow = {
 type ContactStatusRow = {
   code: string;
   label: string;
+  help_text: string | null;
 };
 
 export default function ContactsPage() {
@@ -72,11 +73,10 @@ export default function ContactsPage() {
   const [candidates, setCandidates] = useState<CandidateRow[]>([]);
   const [applications, setApplications] = useState<ApplicationRow[]>([]);
   const [contactStatuses, setContactStatuses] = useState<ContactStatusRow[]>([]);
+  const [defaultStatusCodes, setDefaultStatusCodes] = useState<string[]>([]);
   const [selectedSearchOption, setSelectedSearchOption] =
     useState<EntitySearchOption | null>(null);
-  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([
-    "active_contact",
-  ]);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
 
   useEffect(() => {
     let isMounted = true;
@@ -110,7 +110,7 @@ export default function ContactsPage() {
         supabase.from("applications").select("candidate_id,role_id"),
         supabase
           .from("contact_statuses")
-          .select("code,label")
+          .select("code,label,help_text")
           .eq("is_active", true)
           .order("sort_order", { ascending: true }),
       ]);
@@ -165,7 +165,20 @@ export default function ContactsPage() {
       setRoles((rolesData ?? []) as RoleRow[]);
       setCandidates((candidatesData ?? []) as CandidateRow[]);
       setApplications((applicationsData ?? []) as ApplicationRow[]);
-      setContactStatuses((contactStatusesData ?? []) as ContactStatusRow[]);
+      const statusRows = (contactStatusesData ?? []) as ContactStatusRow[];
+      const preferredDefaultCodes = [
+        "target_contact",
+        "active_contact",
+        "referrer_influencer",
+      ];
+      const defaults = preferredDefaultCodes.filter((code) =>
+        statusRows.some((row) => row.code === code),
+      );
+      const resolvedDefaults =
+        defaults.length > 0 ? defaults : statusRows.map((row) => row.code);
+      setContactStatuses(statusRows);
+      setDefaultStatusCodes(resolvedDefaults);
+      setSelectedStatuses(resolvedDefaults);
       setIsLoading(false);
     };
 
@@ -457,15 +470,32 @@ export default function ContactsPage() {
             onClear={() => setSelectedSearchOption(null)}
             placeholder="Search"
           />
-          <StatusFilter
-            options={contactStatuses.map((option) => ({
-              value: option.code,
-              label: option.label,
-            }))}
-            selectedValues={selectedStatuses}
-            onChange={setSelectedStatuses}
-            onReset={() => setSelectedStatuses(["active_contact"])}
-          />
+          <div className={styles.filterWithHelp}>
+            <StatusFilter
+              options={contactStatuses.map((option) => ({
+                value: option.code,
+                label: option.label,
+              }))}
+              selectedValues={selectedStatuses}
+              onChange={setSelectedStatuses}
+              onReset={() => setSelectedStatuses(defaultStatusCodes)}
+            />
+            <span
+              className={styles.statusHelpIcon}
+              tabIndex={0}
+              aria-label="Contact status definitions"
+            >
+              i
+              <span className={styles.statusHelpTooltip}>
+                {contactStatuses.map((option) => (
+                  <span key={option.code} className={styles.statusHelpLine}>
+                    <strong>{option.label}:</strong>{" "}
+                    {option.help_text ?? "No description set."}
+                  </span>
+                ))}
+              </span>
+            </span>
+          </div>
         </div>
       </header>
 

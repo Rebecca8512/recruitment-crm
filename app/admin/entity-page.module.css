@@ -16,6 +16,60 @@
   flex-wrap: wrap;
 }
 
+.filterWithHelp {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.statusHelpIcon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 15, 20, 0.2);
+  color: #31565b;
+  font-size: 0.72rem;
+  cursor: default;
+}
+
+.statusHelpTooltip {
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 120ms ease;
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 320px;
+  max-width: 420px;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(0, 15, 20, 0.16);
+  background: #ffffff;
+  box-shadow: 0 14px 22px rgba(0, 15, 20, 0.14);
+  color: #1f383d;
+  z-index: 40;
+}
+
+.statusHelpIcon:hover .statusHelpTooltip,
+.statusHelpIcon:focus-within .statusHelpTooltip {
+  opacity: 1;
+}
+
+.statusHelpLine {
+  display: block;
+  font-size: 0.78rem;
+  line-height: 1.38;
+}
+
+.statusHelpLine + .statusHelpLine {
+  margin-top: 0.3rem;
+}
+
 .headerRow {
   display: flex;
   justify-content: space-between;
