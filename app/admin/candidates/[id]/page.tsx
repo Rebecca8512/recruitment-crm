@@ -243,7 +243,11 @@ export default function CandidateProfilePage() {
           )
           .eq("id", candidateId)
           .maybeSingle<CandidateRecord>(),
-        supabase.from("candidate_statuses").select("code,label"),
+        supabase
+          .from("candidate_statuses")
+          .select("code,label")
+          .eq("is_active", true)
+          .order("sort_order", { ascending: true }),
         supabase
           .from("roles")
           .select("id,title,client_id,status_code,job_type,target_date,updated_at")

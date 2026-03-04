@@ -48,6 +48,7 @@ create table if not exists public.role_statuses (
 create table if not exists public.candidate_statuses (
   code text primary key,
   label text not null unique,
+  help_text text,
   sort_order integer not null default 0,
   is_active boolean not null default true,
   created_at timestamptz not null default timezone('utc', now()),
@@ -85,15 +86,14 @@ values
   ('cancelled', 'Cancelled', 'Role has been pulled', 70)
 on conflict (code) do nothing;
 
-insert into public.candidate_statuses (code, label, sort_order)
+insert into public.candidate_statuses (code, label, help_text, sort_order)
 values
-  ('new', 'New', 10),
-  ('screening', 'Screening', 20),
-  ('shortlisted', 'Shortlisted', 30),
-  ('interviewing', 'Interviewing', 40),
-  ('offered', 'Offered', 50),
-  ('placed', 'Placed', 60),
-  ('unavailable', 'Unavailable', 70)
+  ('new', 'New', 'Data is in the system but I have not spoken to them', 10),
+  ('vetted', 'Vetted', 'Screened, actively looking but not currently in a process', 20),
+  ('active', 'ACTIVE', 'Currently being submitted or interviewing for a role', 30),
+  ('placed', 'Placed', 'I found them a job', 40),
+  ('unavailable', 'Unavailable', 'Found a job elsewhere or not actively looking', 50),
+  ('blacklisted', 'Blacklisted', 'No-showed an interview, unprofessional or did not pass screening', 60)
 on conflict (code) do nothing;
 
 insert into public.contact_statuses (code, label, help_text, sort_order)

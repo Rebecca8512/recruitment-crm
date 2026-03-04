@@ -90,7 +90,11 @@ export default function CandidatesPage() {
         { data: rolesData, error: rolesError },
         { data: applicationsData, error: applicationsError },
       ] = await Promise.all([
-        supabase.from("candidate_statuses").select("code,label"),
+        supabase
+          .from("candidate_statuses")
+          .select("code,label")
+          .eq("is_active", true)
+          .order("sort_order", { ascending: true }),
         supabase
           .from("candidates")
           .select(

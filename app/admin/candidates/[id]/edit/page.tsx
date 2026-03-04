@@ -25,6 +25,7 @@ type UserProfile = {
 type CandidateStatusOption = {
   code: string;
   label: string;
+  help_text: string | null;
   sort_order: number;
 };
 
@@ -195,7 +196,8 @@ export default function EditCandidatePage() {
         supabase.from("clients").select("id,name").order("name", { ascending: true }),
         supabase
           .from("candidate_statuses")
-          .select("code,label,sort_order")
+          .select("code,label,help_text,sort_order,is_active")
+          .eq("is_active", true)
           .order("sort_order", { ascending: true }),
         supabase
           .from("client_statuses")
@@ -737,7 +739,24 @@ export default function EditCandidatePage() {
           <h2 className={styles.sectionTitle}>Other Info</h2>
           <div className={styles.grid}>
             <label className={styles.field}>
-              <span className={styles.label}>Candidate status</span>
+              <span className={styles.labelWithHelp}>
+                <span className={styles.label}>Candidate status</span>
+                <span
+                  className={styles.helpIcon}
+                  tabIndex={0}
+                  aria-label="Candidate status definitions"
+                >
+                  i
+                  <span className={styles.helpTooltip}>
+                    {candidateStatusOptions.map((option) => (
+                      <span key={option.code} className={styles.helpTooltipLine}>
+                        <strong>{option.label}:</strong>{" "}
+                        {option.help_text ?? "No description set."}
+                      </span>
+                    ))}
+                  </span>
+                </span>
+              </span>
               <select
                 value={candidateStatus}
                 onChange={(event) => setCandidateStatus(event.target.value)}
