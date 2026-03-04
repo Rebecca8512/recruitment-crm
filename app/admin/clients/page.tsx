@@ -97,7 +97,10 @@ export default function ClientsPage() {
         { data: applicationsData, error: applicationsError },
         { data: clientNotesData, error: clientNotesError },
       ] = await Promise.all([
-        supabase.from("client_statuses").select("code,label"),
+        supabase
+          .from("client_statuses")
+          .select("code,label")
+          .eq("is_active", true),
         supabase
           .from("clients")
           .select("id,name,contact_number,status_code,updated_at")
@@ -177,8 +180,7 @@ export default function ClientsPage() {
       const activeStatusCodes = statusRows
         .filter(
           (row) =>
-            row.code === "active_client" ||
-            row.label.trim().toLowerCase() === "active client",
+            row.code === "active" || row.label.trim().toLowerCase() === "active",
         )
         .map((row) => row.code);
       const defaults =

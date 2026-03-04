@@ -29,6 +29,7 @@ type StatusOption = {
   code: string;
   label: string;
   sort_order: number;
+  help_text: string | null;
 };
 
 type ClientDetails = {
@@ -130,7 +131,8 @@ export default function EditClientPage() {
           supabase.from("clients").select("id,name,industry").order("name", { ascending: true }),
           supabase
             .from("client_statuses")
-            .select("code,label,sort_order")
+            .select("code,label,sort_order,help_text,is_active")
+            .eq("is_active", true)
             .order("sort_order", { ascending: true }),
         ]);
 
@@ -399,7 +401,24 @@ export default function EditClientPage() {
             </label>
 
             <label className={styles.field}>
-              <span className={styles.label}>Status</span>
+              <span className={styles.labelWithHelp}>
+                <span className={styles.label}>Status</span>
+                <span
+                  className={styles.helpIcon}
+                  tabIndex={0}
+                  aria-label="Client status definitions"
+                >
+                  i
+                  <span className={styles.helpTooltip}>
+                    {statusOptions.map((option) => (
+                      <span key={option.code} className={styles.helpTooltipLine}>
+                        <strong>{option.label}:</strong>{" "}
+                        {option.help_text ?? "No description set."}
+                      </span>
+                    ))}
+                  </span>
+                </span>
+              </span>
               <select
                 value={statusCode}
                 onChange={(event) => setStatusCode(event.target.value)}

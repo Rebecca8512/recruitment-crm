@@ -28,6 +28,7 @@ $$;
 create table if not exists public.client_statuses (
   code text primary key,
   label text not null unique,
+  help_text text,
   sort_order integer not null default 0,
   is_active boolean not null default true,
   created_at timestamptz not null default timezone('utc', now()),
@@ -52,13 +53,14 @@ create table if not exists public.candidate_statuses (
   updated_at timestamptz not null default timezone('utc', now())
 );
 
-insert into public.client_statuses (code, label, sort_order)
+insert into public.client_statuses (code, label, help_text, sort_order)
 values
-  ('prospect', 'Prospect', 10),
-  ('nurturing', 'Nurturing', 20),
-  ('active_client', 'Active Client', 30),
-  ('dormant', 'Dormant', 40),
-  ('archived', 'Archived', 50)
+  ('prospect', 'Prospect', 'High-level target. No meaningful conversation yet.', 10),
+  ('warm_lead', 'Warm Lead', 'Meeting held, interest shown, but no contract signed yet.', 20),
+  ('active', 'ACTIVE', 'Signed terms AND live vacancy.', 30),
+  ('inactive_client', 'Inactive Client', 'Signed terms but NO live vacancy', 40),
+  ('archived', 'Archived', 'Previously worked with and no ongoing relationship', 50),
+  ('closed', 'Closed', 'Have never worked with us / DNC', 60)
 on conflict (code) do nothing;
 
 insert into public.role_statuses (code, label, sort_order)

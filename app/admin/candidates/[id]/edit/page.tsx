@@ -200,6 +200,7 @@ export default function EditCandidatePage() {
         supabase
           .from("client_statuses")
           .select("code,sort_order")
+          .eq("is_active", true)
           .order("sort_order", { ascending: true })
           .limit(1),
       ]);
