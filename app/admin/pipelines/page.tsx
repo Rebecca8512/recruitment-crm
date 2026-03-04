@@ -367,7 +367,7 @@ export default function PipelinesPage() {
   const [selectedBDStageIds, setSelectedBDStageIds] = useState<string[]>(
     DEFAULT_BD_STAGE_IDS,
   );
-  const [bdAgeFilter, setBdAgeFilter] = useState<AgeFilterValue>("14");
+  const [bdAgeFilter, setBdAgeFilter] = useState<AgeFilterValue>("any");
   const [collapsedBDStageIds, setCollapsedBDStageIds] = useState<Set<BDStageId>>(
     new Set(),
   );
@@ -377,7 +377,7 @@ export default function PipelinesPage() {
   const [selectedRTStageIds, setSelectedRTStageIds] = useState<string[]>(
     DEFAULT_RT_STAGE_IDS,
   );
-  const [rtAgeFilter, setRtAgeFilter] = useState<AgeFilterValue>("14");
+  const [rtAgeFilter, setRtAgeFilter] = useState<AgeFilterValue>("any");
   const [collapsedRTStageIds, setCollapsedRTStageIds] = useState<Set<RTStageId>>(
     new Set(),
   );
@@ -387,7 +387,7 @@ export default function PipelinesPage() {
   const [selectedAppStageIds, setSelectedAppStageIds] = useState<string[]>(
     DEFAULT_APP_STAGE_IDS,
   );
-  const [appAgeFilter, setAppAgeFilter] = useState<AgeFilterValue>("14");
+  const [appAgeFilter, setAppAgeFilter] = useState<AgeFilterValue>("any");
   const [collapsedAppStageIds, setCollapsedAppStageIds] = useState<Set<AppStageId>>(
     new Set(),
   );
@@ -928,7 +928,7 @@ export default function PipelinesPage() {
                             className={styles.collapseButton}
                             onClick={() => toggleBDStage(stage.id)}
                           >
-                            {isCollapsed ? "Open" : "Close"}
+                            {isCollapsed ? "+" : "\u2212"}
                           </button>
                         </header>
 
@@ -1054,7 +1054,7 @@ export default function PipelinesPage() {
                                 className={styles.collapseButton}
                                 onClick={() => toggleRTStage(stage.id)}
                               >
-                                {isCollapsed ? "Open" : "Close"}
+                                {isCollapsed ? "+" : "\u2212"}
                               </button>
                             </header>
 
@@ -1208,7 +1208,7 @@ export default function PipelinesPage() {
                                 className={styles.collapseButton}
                                 onClick={() => toggleAppStage(stage.id)}
                               >
-                                {isCollapsed ? "Open" : "Close"}
+                                {isCollapsed ? "+" : "\u2212"}
                               </button>
                             </header>
 

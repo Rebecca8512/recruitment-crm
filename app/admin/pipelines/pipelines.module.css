@@ -265,11 +265,18 @@
 
 .collapseButton {
   border: 1px solid rgba(0, 15, 20, 0.2);
-  border-radius: 0.4rem;
+  border-radius: 0.3rem;
   background: #ffffff;
   color: #20464d;
-  font-size: 0.72rem;
-  padding: 0.18rem 0.36rem;
+  font-size: 0.92rem;
+  line-height: 1;
+  width: 1.35rem;
+  height: 1.35rem;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
 }
 
 .collapseButton:hover {

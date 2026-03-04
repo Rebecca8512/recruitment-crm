@@ -8,11 +8,11 @@ import styles from "./admin-shell.module.css";
 
 const NAV_ITEMS = [
   { href: "/admin/dashboard", label: "Dashboard" },
+  { href: "/admin/pipelines", label: "Pipelines" },
   { href: "/admin/clients", label: "Clients" },
   { href: "/admin/contacts", label: "Contacts" },
   { href: "/admin/roles", label: "Roles" },
   { href: "/admin/candidates", label: "Candidates" },
-  { href: "/admin/pipelines", label: "Pipelines" },
 ];
 
 const ADD_OPTIONS = [
