@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
   EntitySearch,
@@ -11,7 +11,7 @@ import { StatusFilter } from "@/src/components/filters/status-filter";
 import { getSupabaseBrowserClient } from "@/src/lib/supabase";
 import styles from "./pipelines.module.css";
 
-type PipelineView = "business-development" | "vacancy-fill";
+type PipelineView = "business-development" | "vacancy-fill" | "applicant-tracker";
 
 type ClientRow = {
   id: string;
@@ -141,6 +141,7 @@ type DragPayload =
 const VIEW_OPTIONS: { value: PipelineView; label: string }[] = [
   { value: "business-development", label: "Business Development" },
   { value: "vacancy-fill", label: "Role Tracker" },
+  { value: "applicant-tracker", label: "Applicant Tracker" },
 ];
 
 const BD_STAGES: StageConfig<BDStageId>[] = [
@@ -277,6 +278,7 @@ const RT_STAGE_OVERRIDES_KEY = "crm:rt-stage-overrides:v1";
 
 function resolveView(view: string | null): PipelineView {
   if (view === "vacancy-fill") return "vacancy-fill";
+  if (view === "applicant-tracker") return "applicant-tracker";
   return "business-development";
 }
 
@@ -392,6 +394,7 @@ function formatDate(value: string | null) {
 
 export default function PipelinesPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const view = resolveView(searchParams.get("view"));
   const selectedRoleId = searchParams.get("role");
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
@@ -727,6 +730,25 @@ export default function PipelinesPage() {
 
     return [...roleOptions, ...clientOptions];
   }, [clients, rtCards]);
+
+  const applicantRoleSearchOptions = useMemo<EntitySearchOption[]>(() => {
+    return rtCards.map((card) => ({
+      key: `role:${card.roleId}`,
+      entityId: card.roleId,
+      entityType: "role",
+      label: card.title,
+      subtitle: card.clientName !== "-" ? `for ${card.clientName}` : undefined,
+      searchText: `${card.title} role ${card.clientName}`,
+    }));
+  }, [rtCards]);
+
+  const selectedApplicantRoleOption = useMemo(() => {
+    if (!selectedRoleId) return null;
+    return (
+      applicantRoleSearchOptions.find((option) => option.entityId === selectedRoleId) ??
+      null
+    );
+  }, [applicantRoleSearchOptions, selectedRoleId]);
 
   const appSearchOptions = useMemo<EntitySearchOption[]>(() => {
     return selectedRoleApplications.map((row) => ({
@@ -1160,174 +1182,189 @@ export default function PipelinesPage() {
             ) : null}
           </section>
         </>
-      ) : (
+      ) : null}
+
+      {view === "vacancy-fill" ? (
         <>
-          {!selectedRole ? (
-            <>
-              <section className={styles.controlsCard}>
-                <div className={styles.controlsRow}>
-                  <Link href="/admin/roles/new" className={styles.inlineTextLink}>
-                    Add new role
-                  </Link>
-                  <EntitySearch
-                    options={rtSearchOptions}
-                    selected={selectedRTSearch}
-                    onSelect={(option) => setSelectedRTSearch(option)}
-                    onClear={() => setSelectedRTSearch(null)}
-                    placeholder="Search"
-                  />
-                  <StatusFilter
-                    options={RT_STAGES.map((stage) => ({
-                      value: stage.id,
-                      label: stage.label,
-                    }))}
-                    selectedValues={selectedRTStageIds}
-                    onChange={setSelectedRTStageIds}
-                    onReset={() => setSelectedRTStageIds(DEFAULT_RT_STAGE_IDS)}
-                  />
-                  <label className={styles.ageFilter}>
-                    <span>Age</span>
-                    <select
-                      value={rtAgeFilter}
-                      onChange={(event) =>
-                        setRtAgeFilter(event.target.value as AgeFilterValue)
-                      }
-                    >
-                      {AGE_FILTER_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <span
-                    className={styles.helpIcon}
-                    tabIndex={0}
-                    aria-label="Role tracker stage definitions"
-                  >
-                    i
-                    <span className={styles.helpTooltip}>
-                      {RT_STAGES.map((stage) => (
-                        <span key={stage.id} className={styles.helpLine}>
-                          <strong>{stage.label}:</strong> {stage.tooltip}
-                        </span>
-                      ))}
+          <section className={styles.controlsCard}>
+            <div className={styles.controlsRow}>
+              <Link href="/admin/roles/new" className={styles.inlineTextLink}>
+                Add new role
+              </Link>
+              <EntitySearch
+                options={rtSearchOptions}
+                selected={selectedRTSearch}
+                onSelect={(option) => setSelectedRTSearch(option)}
+                onClear={() => setSelectedRTSearch(null)}
+                placeholder="Search"
+              />
+              <StatusFilter
+                options={RT_STAGES.map((stage) => ({
+                  value: stage.id,
+                  label: stage.label,
+                }))}
+                selectedValues={selectedRTStageIds}
+                onChange={setSelectedRTStageIds}
+                onReset={() => setSelectedRTStageIds(DEFAULT_RT_STAGE_IDS)}
+              />
+              <label className={styles.ageFilter}>
+                <span>Age</span>
+                <select
+                  value={rtAgeFilter}
+                  onChange={(event) =>
+                    setRtAgeFilter(event.target.value as AgeFilterValue)
+                  }
+                >
+                  {AGE_FILTER_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <span
+                className={styles.helpIcon}
+                tabIndex={0}
+                aria-label="Role tracker stage definitions"
+              >
+                i
+                <span className={styles.helpTooltip}>
+                  {RT_STAGES.map((stage) => (
+                    <span key={stage.id} className={styles.helpLine}>
+                      <strong>{stage.label}:</strong> {stage.tooltip}
                     </span>
-                  </span>
-                </div>
-              </section>
+                  ))}
+                </span>
+              </span>
+            </div>
+          </section>
 
-              <section className={styles.boardCard}>
-                {isLoading ? <p className={styles.infoText}>Loading role tracker...</p> : null}
-                {errorMessage ? <p className={styles.errorText}>{errorMessage}</p> : null}
-                {!isLoading && !errorMessage ? (
-                  <div className={styles.boardScroll}>
-                    <div className={styles.boardGridWide}>
-                      {RT_STAGES.map((stage) => {
-                        const isCollapsed = collapsedRTStageIds.has(stage.id);
-                        const stageCards = rtCardsByStage[stage.id];
-                        return (
-                          <article
-                            key={stage.id}
-                            className={`${styles.stageColumn} ${isCollapsed ? styles.stageColumnCollapsed : ""}`}
-                            onDragOver={(event) => event.preventDefault()}
-                            onDrop={() => onDropToRTStage(stage.id)}
+          <section className={styles.boardCard}>
+            {isLoading ? <p className={styles.infoText}>Loading role tracker...</p> : null}
+            {errorMessage ? <p className={styles.errorText}>{errorMessage}</p> : null}
+            {!isLoading && !errorMessage ? (
+              <div className={styles.boardScroll}>
+                <div className={styles.boardGridWide}>
+                  {RT_STAGES.map((stage) => {
+                    const isCollapsed = collapsedRTStageIds.has(stage.id);
+                    const stageCards = rtCardsByStage[stage.id];
+                    return (
+                      <article
+                        key={stage.id}
+                        className={`${styles.stageColumn} ${isCollapsed ? styles.stageColumnCollapsed : ""}`}
+                        onDragOver={(event) => event.preventDefault()}
+                        onDrop={() => onDropToRTStage(stage.id)}
+                      >
+                        <header className={styles.stageHeader}>
+                          <div
+                            className={`${styles.stageTitleWrap} ${isCollapsed ? styles.stageTitleWrapCollapsed : ""}`}
                           >
-                            <header className={styles.stageHeader}>
-                              <div
-                                className={`${styles.stageTitleWrap} ${isCollapsed ? styles.stageTitleWrapCollapsed : ""}`}
-                              >
-                                <h2 className={styles.stageTitle}>{stage.label}</h2>
-                                <span className={styles.stageCount}>{stageCards.length}</span>
-                              </div>
-                              <button
-                                type="button"
-                                className={styles.collapseButton}
-                                onClick={() => toggleRTStage(stage.id)}
-                              >
-                                {isCollapsed ? "+" : "\u2212"}
-                              </button>
-                            </header>
+                            <h2 className={styles.stageTitle}>{stage.label}</h2>
+                            <span className={styles.stageCount}>{stageCards.length}</span>
+                          </div>
+                          <button
+                            type="button"
+                            className={styles.collapseButton}
+                            onClick={() => toggleRTStage(stage.id)}
+                          >
+                            {isCollapsed ? "+" : "\u2212"}
+                          </button>
+                        </header>
 
-                            {!isCollapsed ? (
-                              <div className={styles.cardStack}>
-                                {stageCards.length > 0 ? (
-                                  stageCards.map((card) => (
-                                    <Link
-                                      key={card.id}
-                                      href={`/admin/pipelines?view=vacancy-fill&role=${card.roleId}`}
-                                      className={styles.pipelineCard}
-                                      draggable
-                                      onDragStart={() =>
-                                        onDragStart({ kind: "rt", id: card.roleId })
-                                      }
-                                      onDragEnd={onDragEnd}
-                                    >
-                                      <p className={styles.cardTitleText}>{card.title}</p>
-                                      <p className={styles.cardSubtleText}>{card.clientName}</p>
-                                      <dl className={styles.cardMetaSplit}>
-                                        <div>
-                                          <dt>Candidates</dt>
-                                          <dd>{card.candidateCount}</dd>
-                                        </div>
-                                        <div>
-                                          <dt>Interviews</dt>
-                                          <dd>{card.interviewCount}</dd>
-                                        </div>
-                                        <div>
-                                          <dt>Offers</dt>
-                                          <dd>{card.offerCount}</dd>
-                                        </div>
-                                      </dl>
-                                      <dl className={styles.cardMeta}>
-                                        <div>
-                                          <dt>Status</dt>
-                                          <dd>{card.roleStatusLabel}</dd>
-                                        </div>
-                                        <div>
-                                          <dt>Age</dt>
-                                          <dd>{toAgeInDays(card.updatedAt)}d</dd>
-                                        </div>
-                                        <div>
-                                          <dt>Open</dt>
-                                          <dd>Applications</dd>
-                                        </div>
-                                      </dl>
-                                    </Link>
-                                  ))
-                                ) : (
-                                  <p className={styles.emptyStage}>No records.</p>
-                                )}
-                              </div>
-                            ) : null}
-                          </article>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ) : null}
-              </section>
-            </>
-          ) : (
-            <>
-              <section className={styles.controlsCard}>
-                <div className={styles.panelHeaderRow}>
-                  <div>
-                    <h2 className={styles.cardTitle}>{selectedRole.title}</h2>
-                    <p className={styles.panelSubtext}>
-                      {selectedRole.client_id
-                        ? (clientNameById[selectedRole.client_id] ?? "-")
-                        : "-"}
-                    </p>
-                  </div>
-                  <Link
-                    href="/admin/pipelines?view=vacancy-fill"
-                    className={styles.switchButton}
-                  >
-                    Back to Role Tracker
-                  </Link>
+                        {!isCollapsed ? (
+                          <div className={styles.cardStack}>
+                            {stageCards.length > 0 ? (
+                              stageCards.map((card) => (
+                                <Link
+                                  key={card.id}
+                                  href={`/admin/pipelines?view=applicant-tracker&role=${card.roleId}`}
+                                  className={styles.pipelineCard}
+                                  draggable
+                                  onDragStart={() =>
+                                    onDragStart({ kind: "rt", id: card.roleId })
+                                  }
+                                  onDragEnd={onDragEnd}
+                                >
+                                  <p className={styles.cardTitleText}>{card.title}</p>
+                                  <p className={styles.cardSubtleText}>{card.clientName}</p>
+                                  <dl className={styles.cardMetaSplit}>
+                                    <div>
+                                      <dt>Candidates</dt>
+                                      <dd>{card.candidateCount}</dd>
+                                    </div>
+                                    <div>
+                                      <dt>Interviews</dt>
+                                      <dd>{card.interviewCount}</dd>
+                                    </div>
+                                    <div>
+                                      <dt>Offers</dt>
+                                      <dd>{card.offerCount}</dd>
+                                    </div>
+                                  </dl>
+                                  <dl className={styles.cardMeta}>
+                                    <div>
+                                      <dt>Status</dt>
+                                      <dd>{card.roleStatusLabel}</dd>
+                                    </div>
+                                    <div>
+                                      <dt>Age</dt>
+                                      <dd>{toAgeInDays(card.updatedAt)}d</dd>
+                                    </div>
+                                    <div>
+                                      <dt>Open</dt>
+                                      <dd>Applications</dd>
+                                    </div>
+                                  </dl>
+                                </Link>
+                              ))
+                            ) : (
+                              <p className={styles.emptyStage}>No records.</p>
+                            )}
+                          </div>
+                        ) : null}
+                      </article>
+                    );
+                  })}
                 </div>
-                <div className={styles.controlsRow}>
+              </div>
+            ) : null}
+          </section>
+        </>
+      ) : null}
+
+      {view === "applicant-tracker" ? (
+        <>
+          <section className={styles.controlsCard}>
+            <div className={styles.panelHeaderRow}>
+              <div>
+                <h2 className={styles.cardTitle}>
+                  {selectedRole ? selectedRole.title : "Applicant Tracker"}
+                </h2>
+                <p className={styles.panelSubtext}>
+                  {selectedRole && selectedRole.client_id
+                    ? (clientNameById[selectedRole.client_id] ?? "-")
+                    : "Search by role to open candidate applications"}
+                </p>
+              </div>
+              <Link
+                href="/admin/pipelines?view=vacancy-fill"
+                className={styles.switchButton}
+              >
+                Back to Role Tracker
+              </Link>
+            </div>
+            <div className={styles.controlsRow}>
+              <EntitySearch
+                options={applicantRoleSearchOptions}
+                selected={selectedApplicantRoleOption}
+                onSelect={(option) =>
+                  router.push(`/admin/pipelines?view=applicant-tracker&role=${option.entityId}`)
+                }
+                onClear={() => router.push("/admin/pipelines?view=applicant-tracker")}
+                placeholder="Search"
+              />
+              {selectedRole ? (
+                <>
                   <EntitySearch
                     options={appSearchOptions}
                     selected={selectedAppSearch}
@@ -1373,93 +1410,102 @@ export default function PipelinesPage() {
                       ))}
                     </span>
                   </span>
-                </div>
-              </section>
+                </>
+              ) : null}
+            </div>
+          </section>
 
-              <section className={styles.boardCard}>
-                {isLoading ? (
-                  <p className={styles.infoText}>Loading applications...</p>
-                ) : null}
-                {errorMessage ? <p className={styles.errorText}>{errorMessage}</p> : null}
-                {!isLoading && !errorMessage ? (
-                  <div className={styles.boardScroll}>
-                    <div className={styles.boardGridWide}>
-                      {APPLICATION_STAGES.map((stage) => {
-                        const isCollapsed = collapsedAppStageIds.has(stage.id);
-                        const stageCards = roleApplicationsByStage[stage.id];
-                        return (
-                          <article
-                            key={stage.id}
-                            className={`${styles.stageColumn} ${isCollapsed ? styles.stageColumnCollapsed : ""}`}
-                            onDragOver={(event) => event.preventDefault()}
-                            onDrop={() => onDropToAppStage(stage.id)}
-                          >
-                            <header className={styles.stageHeader}>
-                              <div
-                                className={`${styles.stageTitleWrap} ${isCollapsed ? styles.stageTitleWrapCollapsed : ""}`}
-                              >
-                                <h2 className={styles.stageTitle}>{stage.label}</h2>
-                                <span className={styles.stageCount}>{stageCards.length}</span>
-                              </div>
-                              <button
-                                type="button"
-                                className={styles.collapseButton}
-                                onClick={() => toggleAppStage(stage.id)}
-                              >
-                                {isCollapsed ? "+" : "\u2212"}
-                              </button>
-                            </header>
+          {selectedRole ? (
+            <section className={styles.boardCard}>
+              {isLoading ? (
+                <p className={styles.infoText}>Loading applications...</p>
+              ) : null}
+              {errorMessage ? <p className={styles.errorText}>{errorMessage}</p> : null}
+              {!isLoading && !errorMessage ? (
+                <div className={styles.boardScroll}>
+                  <div className={styles.boardGridWide}>
+                    {APPLICATION_STAGES.map((stage) => {
+                      const isCollapsed = collapsedAppStageIds.has(stage.id);
+                      const stageCards = roleApplicationsByStage[stage.id];
+                      return (
+                        <article
+                          key={stage.id}
+                          className={`${styles.stageColumn} ${isCollapsed ? styles.stageColumnCollapsed : ""}`}
+                          onDragOver={(event) => event.preventDefault()}
+                          onDrop={() => onDropToAppStage(stage.id)}
+                        >
+                          <header className={styles.stageHeader}>
+                            <div
+                              className={`${styles.stageTitleWrap} ${isCollapsed ? styles.stageTitleWrapCollapsed : ""}`}
+                            >
+                              <h2 className={styles.stageTitle}>{stage.label}</h2>
+                              <span className={styles.stageCount}>{stageCards.length}</span>
+                            </div>
+                            <button
+                              type="button"
+                              className={styles.collapseButton}
+                              onClick={() => toggleAppStage(stage.id)}
+                            >
+                              {isCollapsed ? "+" : "\u2212"}
+                            </button>
+                          </header>
 
-                            {!isCollapsed ? (
-                              <div className={styles.cardStack}>
-                                {stageCards.length > 0 ? (
-                                  stageCards.map((card) => (
-                                    <Link
-                                      key={card.id}
-                                      href={`/admin/candidates/${card.candidateId}`}
-                                      className={styles.pipelineCard}
-                                      draggable
-                                      onDragStart={() =>
-                                        onDragStart({
-                                          kind: "app",
-                                          id: card.applicationId,
-                                        })
-                                      }
-                                      onDragEnd={onDragEnd}
-                                    >
-                                      <p className={styles.cardTitleText}>{card.candidateName}</p>
-                                      <dl className={styles.cardMeta}>
-                                        <div>
-                                          <dt>Status</dt>
-                                          <dd>{card.candidateStatusLabel}</dd>
-                                        </div>
-                                        <div>
-                                          <dt>Submitted</dt>
-                                          <dd>{formatDate(card.submittedOn)}</dd>
-                                        </div>
-                                        <div>
-                                          <dt>Age</dt>
-                                          <dd>{toAgeInDays(card.updatedAt)}d</dd>
-                                        </div>
-                                      </dl>
-                                    </Link>
-                                  ))
-                                ) : (
-                                  <p className={styles.emptyStage}>No records.</p>
-                                )}
-                              </div>
-                            ) : null}
-                          </article>
-                        );
-                      })}
-                    </div>
+                          {!isCollapsed ? (
+                            <div className={styles.cardStack}>
+                              {stageCards.length > 0 ? (
+                                stageCards.map((card) => (
+                                  <Link
+                                    key={card.id}
+                                    href={`/admin/candidates/${card.candidateId}`}
+                                    className={styles.pipelineCard}
+                                    draggable
+                                    onDragStart={() =>
+                                      onDragStart({
+                                        kind: "app",
+                                        id: card.applicationId,
+                                      })
+                                    }
+                                    onDragEnd={onDragEnd}
+                                  >
+                                    <p className={styles.cardTitleText}>{card.candidateName}</p>
+                                    <dl className={styles.cardMeta}>
+                                      <div>
+                                        <dt>Status</dt>
+                                        <dd>{card.candidateStatusLabel}</dd>
+                                      </div>
+                                      <div>
+                                        <dt>Submitted</dt>
+                                        <dd>{formatDate(card.submittedOn)}</dd>
+                                      </div>
+                                      <div>
+                                        <dt>Age</dt>
+                                        <dd>{toAgeInDays(card.updatedAt)}d</dd>
+                                      </div>
+                                    </dl>
+                                  </Link>
+                                ))
+                              ) : (
+                                <p className={styles.emptyStage}>No records.</p>
+                              )}
+                            </div>
+                          ) : null}
+                        </article>
+                      );
+                    })}
                   </div>
-                ) : null}
-              </section>
-            </>
+                </div>
+              ) : null}
+            </section>
+          ) : (
+            <section className={styles.boardCard}>
+              <p className={styles.infoText}>
+                Select a role from search to open the applicant tracker.
+              </p>
+            </section>
           )}
         </>
-      )}
+      ) : null}
+      
     </main>
   );
 }
