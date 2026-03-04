@@ -8,7 +8,7 @@ insert into public.client_statuses (code, label, help_text, sort_order, is_activ
 values
   ('prospect', 'Prospect', 'High-level target. No meaningful conversation yet.', 10, true),
   ('warm_lead', 'Warm Lead', 'Meeting held, interest shown, but no contract signed yet.', 20, true),
-  ('active', 'ACTIVE', 'Signed terms AND live vacancy.', 30, true),
+  ('active', 'ACTIVE', 'Signed terms AND live vacancy being worked on.', 30, true),
   ('inactive_client', 'Inactive Client', 'Signed terms but NO live vacancy', 40, true),
   ('archived', 'Archived', 'Previously worked with and no ongoing relationship', 50, true),
   ('closed', 'Closed', 'Have never worked with us / DNC', 60, true)

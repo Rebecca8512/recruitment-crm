@@ -23,10 +23,12 @@
 }
 
 .switchCard,
-.placeholderCard {
+.placeholderCard,
+.controlsCard,
+.boardCard {
   border: 1px solid rgba(0, 15, 20, 0.1);
   border-radius: 1rem;
-  padding: 1.1rem;
+  padding: 1rem;
   background: rgba(255, 255, 255, 0.86);
   box-shadow: 0 18px 30px rgba(0, 15, 20, 0.08);
 }
@@ -61,4 +63,260 @@
 .placeholderText {
   margin: 0.7rem 0 0;
   color: #2a3d41;
+}
+
+.controlsRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.inlineTextLink {
+  display: inline-flex;
+  color: #0a5254;
+  text-decoration: underline;
+  text-underline-offset: 0.15rem;
+}
+
+.inlineTextLink:hover {
+  color: #063f40;
+}
+
+.ageFilter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 1px solid rgba(0, 15, 20, 0.2);
+  border-radius: 0.6rem;
+  background: #ffffff;
+  padding: 0.25rem 0.45rem 0.25rem 0.6rem;
+  color: #22474e;
+}
+
+.ageFilter span {
+  font-size: 0.82rem;
+}
+
+.ageFilter select {
+  border: 0;
+  background: transparent;
+  color: #001418;
+  font-size: 0.9rem;
+  padding-right: 0.1rem;
+}
+
+.ageFilter select:focus {
+  outline: none;
+}
+
+.helpIcon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 15, 20, 0.2);
+  color: #31565b;
+  font-size: 0.72rem;
+  cursor: default;
+}
+
+.helpTooltip {
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 120ms ease;
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  right: 0;
+  min-width: 320px;
+  max-width: 420px;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(0, 15, 20, 0.16);
+  background: #ffffff;
+  box-shadow: 0 14px 22px rgba(0, 15, 20, 0.14);
+  color: #1f383d;
+  z-index: 50;
+}
+
+.helpIcon:hover .helpTooltip,
+.helpIcon:focus-within .helpTooltip {
+  opacity: 1;
+}
+
+.helpLine {
+  display: block;
+  font-size: 0.78rem;
+  line-height: 1.36;
+}
+
+.helpLine + .helpLine {
+  margin-top: 0.26rem;
+}
+
+.infoText {
+  margin: 0;
+  color: #2a3d41;
+}
+
+.errorText {
+  margin: 0;
+  color: #8f1b13;
+}
+
+.boardScroll {
+  overflow-x: auto;
+}
+
+.boardGrid {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(260px, 1fr);
+  gap: 0.75rem;
+  align-items: stretch;
+  min-height: 420px;
+}
+
+.stageColumn {
+  border: 1px solid rgba(0, 15, 20, 0.14);
+  border-radius: 0.85rem;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  flex-direction: column;
+  min-width: 260px;
+}
+
+.stageColumnCollapsed {
+  min-width: 48px;
+  max-width: 48px;
+}
+
+.stageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  border-bottom: 1px solid rgba(0, 15, 20, 0.1);
+  padding: 0.56rem 0.58rem;
+}
+
+.stageTitleWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.stageTitleWrapCollapsed {
+  flex-direction: column;
+  align-items: center;
+}
+
+.stageTitle {
+  margin: 0;
+  font-size: 0.92rem;
+  color: #001418;
+}
+
+.stageTitleWrapCollapsed .stageTitle {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  letter-spacing: 0.04em;
+}
+
+.stageCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 15, 20, 0.2);
+  background: #f3faf9;
+  color: #134449;
+  font-size: 0.74rem;
+}
+
+.collapseButton {
+  border: 1px solid rgba(0, 15, 20, 0.2);
+  border-radius: 0.4rem;
+  background: #ffffff;
+  color: #20464d;
+  font-size: 0.72rem;
+  padding: 0.18rem 0.36rem;
+}
+
+.collapseButton:hover {
+  background: #c5e7dc;
+}
+
+.cardStack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.58rem;
+  overflow-y: auto;
+}
+
+.pipelineCard {
+  display: block;
+  border: 1px solid rgba(0, 15, 20, 0.14);
+  border-radius: 0.62rem;
+  background: #fbfffe;
+  padding: 0.56rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.pipelineCard:hover {
+  border-color: #0a9396;
+  background: #c5e7dc;
+}
+
+.cardTitleText {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #07282f;
+}
+
+.cardMeta {
+  margin: 0.5rem 0 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.cardMeta dt {
+  margin: 0;
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #507078;
+}
+
+.cardMeta dd {
+  margin: 0.12rem 0 0;
+  color: #173e44;
+  font-size: 0.79rem;
+}
+
+.emptyStage {
+  margin: 0;
+  border: 1px dashed rgba(0, 15, 20, 0.18);
+  border-radius: 0.58rem;
+  padding: 0.65rem;
+  color: #4b656b;
+  font-size: 0.88rem;
+}
+
+@media (max-width: 900px) {
+  .helpTooltip {
+    right: auto;
+    left: 0;
+    min-width: 280px;
+    max-width: calc(100vw - 3rem);
+  }
 }
