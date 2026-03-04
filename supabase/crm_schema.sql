@@ -53,6 +53,16 @@ create table if not exists public.candidate_statuses (
   updated_at timestamptz not null default timezone('utc', now())
 );
 
+create table if not exists public.contact_statuses (
+  code text primary key,
+  label text not null unique,
+  help_text text,
+  sort_order integer not null default 0,
+  is_active boolean not null default true,
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now())
+);
+
 insert into public.client_statuses (code, label, help_text, sort_order)
 values
   ('prospect', 'Prospect', 'High-level target. No meaningful conversation yet.', 10),
@@ -84,6 +94,15 @@ values
   ('offered', 'Offered', 50),
   ('placed', 'Placed', 60),
   ('unavailable', 'Unavailable', 70)
+on conflict (code) do nothing;
+
+insert into public.contact_statuses (code, label, help_text, sort_order)
+values
+  ('target_contact', 'Target Contact', 'A person at a prospect company that has not been spoken to yet', 10),
+  ('active_contact', 'Active Contact', 'A person currently attached to a client that has been spoken to', 20),
+  ('in_transit', 'In-Transit', 'A contact that is leaving/has left their current employ but not started at new one yet', 30),
+  ('referrer_influencer', 'Referrer / Influencer', 'People not tied to a specific hiring company but who provide leads', 40),
+  ('dnc', 'DNC', 'Someone you should never contact again', 50)
 on conflict (code) do nothing;
 
 create table if not exists public.clients (
@@ -127,6 +146,7 @@ create table if not exists public.contacts (
   id uuid primary key default gen_random_uuid(),
   first_name text not null,
   last_name text not null,
+  status_code text not null default 'target_contact' references public.contact_statuses(code),
   department text,
   email text,
   secondary_email text,
@@ -425,6 +445,12 @@ before update on public.candidate_statuses
 for each row
 execute function public.set_updated_at();
 
+drop trigger if exists trg_contact_statuses_updated_at on public.contact_statuses;
+create trigger trg_contact_statuses_updated_at
+before update on public.contact_statuses
+for each row
+execute function public.set_updated_at();
+
 drop trigger if exists trg_clients_updated_at on public.clients;
 create trigger trg_clients_updated_at
 before update on public.clients
@@ -488,6 +514,7 @@ execute function public.set_updated_at();
 alter table public.client_statuses enable row level security;
 alter table public.role_statuses enable row level security;
 alter table public.candidate_statuses enable row level security;
+alter table public.contact_statuses enable row level security;
 alter table public.clients enable row level security;
 alter table public.contacts enable row level security;
 alter table public.contact_employments enable row level security;
@@ -502,6 +529,7 @@ alter table public.client_communication_notes enable row level security;
 grant select, insert, update, delete on table public.client_statuses to authenticated;
 grant select, insert, update, delete on table public.role_statuses to authenticated;
 grant select, insert, update, delete on table public.candidate_statuses to authenticated;
+grant select, insert, update, delete on table public.contact_statuses to authenticated;
 grant select, insert, update, delete on table public.clients to authenticated;
 grant select, insert, update, delete on table public.contacts to authenticated;
 grant select, insert, update, delete on table public.contact_employments to authenticated;
@@ -553,6 +581,21 @@ using (public.can_access_crm());
 drop policy if exists "candidate_status_modify_admin_only" on public.candidate_statuses;
 create policy "candidate_status_modify_admin_only"
 on public.candidate_statuses
+for all
+to authenticated
+using (public.is_admin(auth.uid()))
+with check (public.is_admin(auth.uid()));
+
+drop policy if exists "contact_status_select_crm_users" on public.contact_statuses;
+create policy "contact_status_select_crm_users"
+on public.contact_statuses
+for select
+to authenticated
+using (public.can_access_crm());
+
+drop policy if exists "contact_status_modify_admin_only" on public.contact_statuses;
+create policy "contact_status_modify_admin_only"
+on public.contact_statuses
 for all
 to authenticated
 using (public.is_admin(auth.uid()))

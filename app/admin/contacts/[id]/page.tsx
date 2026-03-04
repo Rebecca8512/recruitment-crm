@@ -24,6 +24,7 @@ type ContactRecord = {
   x_url: string | null;
   facebook_url: string | null;
   instagram_url: string | null;
+  status_code: string | null;
   updated_at: string;
 };
 
@@ -37,6 +38,11 @@ type EmploymentRecord = {
 type ClientRecord = {
   id: string;
   name: string;
+};
+
+type ContactStatusRecord = {
+  code: string;
+  label: string;
 };
 
 const UUID_PATTERN =
@@ -53,7 +59,7 @@ export default function ContactProfilePage() {
   const [contact, setContact] = useState<ContactRecord | null>(null);
   const [clientName, setClientName] = useState<string>("-");
   const [clientId, setClientId] = useState<string | null>(null);
-  const [statusLabel, setStatusLabel] = useState("Unassigned");
+  const [statusLabel, setStatusLabel] = useState("Target Contact");
   const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>("Overview");
 
   useEffect(() => {
@@ -69,11 +75,12 @@ export default function ContactProfilePage() {
       const [
         { data: contactData, error: contactError },
         { data: employmentsData, error: employmentsError },
+        { data: contactStatusesData, error: contactStatusesError },
       ] = await Promise.all([
         supabase
           .from("contacts")
           .select(
-            "id,first_name,last_name,department,email,secondary_email,job_title,work_phone,mobile,phone,source,marketing_email_opt_out,notes,linkedin_url,x_url,facebook_url,instagram_url,updated_at",
+            "id,first_name,last_name,department,email,secondary_email,job_title,work_phone,mobile,phone,source,status_code,marketing_email_opt_out,notes,linkedin_url,x_url,facebook_url,instagram_url,updated_at",
           )
           .eq("id", contactId)
           .maybeSingle<ContactRecord>(),
@@ -81,6 +88,11 @@ export default function ContactProfilePage() {
           .from("contact_employments")
           .select("client_id,is_primary,start_date,end_date")
           .eq("contact_id", contactId),
+        supabase
+          .from("contact_statuses")
+          .select("code,label")
+          .eq("is_active", true)
+          .order("sort_order", { ascending: true }),
       ]);
 
       if (!isMounted) return;
@@ -97,6 +109,12 @@ export default function ContactProfilePage() {
         return;
       }
 
+      if (contactStatusesError) {
+        setErrorMessage(contactStatusesError.message);
+        setIsLoading(false);
+        return;
+      }
+
       if (!contactData) {
         setErrorMessage("Contact not found.");
         setIsLoading(false);
@@ -105,13 +123,17 @@ export default function ContactProfilePage() {
 
       const employments = (employmentsData ?? []) as EmploymentRecord[];
       const linkedRows = employments.filter((row) => Boolean(row.client_id));
-
-      if (linkedRows.length === 0) {
-        setStatusLabel("Unassigned");
-      } else {
-        const hasActiveLink = linkedRows.some((row) => !row.end_date);
-        setStatusLabel(hasActiveLink ? "Assigned" : "Previous");
-      }
+      const statusByCode = ((contactStatusesData ?? []) as ContactStatusRecord[]).reduce<
+        Record<string, string>
+      >((acc, row) => {
+        acc[row.code] = row.label;
+        return acc;
+      }, {});
+      setStatusLabel(
+        statusByCode[contactData.status_code ?? ""] ??
+          contactData.status_code ??
+          "Target Contact",
+      );
 
       const prioritized = [...linkedRows].sort((a, b) => {
         const aPrimary = a.is_primary && !a.end_date ? 1 : 0;

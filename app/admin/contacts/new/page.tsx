@@ -25,6 +25,12 @@ type ClientOption = {
   name: string;
 };
 
+type ContactStatusOption = {
+  code: string;
+  label: string;
+  help_text: string | null;
+};
+
 type InsertedContact = {
   id: string;
 };
@@ -57,6 +63,7 @@ export default function NewContactPage() {
   const [ownerUserId, setOwnerUserId] = useState("");
   const [ownerLabel, setOwnerLabel] = useState("");
   const [clientOptions, setClientOptions] = useState<ClientOption[]>([]);
+  const [statusOptions, setStatusOptions] = useState<ContactStatusOption[]>([]);
 
   const [contactName, setContactName] = useState("");
   const [department, setDepartment] = useState("");
@@ -72,6 +79,7 @@ export default function NewContactPage() {
   const [facebookUrl, setFacebookUrl] = useState("");
   const [instagramUrl, setInstagramUrl] = useState("");
   const [source, setSource] = useState<string>("paid_ad");
+  const [statusCode, setStatusCode] = useState("target_contact");
   const [isPrimaryContact, setIsPrimaryContact] = useState(false);
   const [marketingEmailOptOut, setMarketingEmailOptOut] = useState(false);
 
@@ -92,7 +100,11 @@ export default function NewContactPage() {
       const user = sessionData.session.user;
       setOwnerUserId(user.id);
 
-      const [{ data: profile }, { data: clientsData, error: clientsError }] =
+      const [
+        { data: profile },
+        { data: clientsData, error: clientsError },
+        { data: contactStatusesData, error: contactStatusesError },
+      ] =
         await Promise.all([
           supabase
             .from("profiles")
@@ -100,6 +112,11 @@ export default function NewContactPage() {
             .eq("id", user.id)
             .maybeSingle<UserProfile>(),
           supabase.from("clients").select("id,name").order("name", { ascending: true }),
+          supabase
+            .from("contact_statuses")
+            .select("code,label,help_text,sort_order,is_active")
+            .eq("is_active", true)
+            .order("sort_order", { ascending: true }),
         ]);
 
       if (clientsError) {
@@ -108,10 +125,21 @@ export default function NewContactPage() {
         return;
       }
 
+      if (contactStatusesError) {
+        setErrorMessage(contactStatusesError.message);
+        setIsLoading(false);
+        return;
+      }
+
       const label =
         profile?.full_name?.trim() || profile?.email || user.email || "Current user";
       setOwnerLabel(label);
       setClientOptions((clientsData ?? []) as ClientOption[]);
+      const statusRows = (contactStatusesData ?? []) as ContactStatusOption[];
+      setStatusOptions(statusRows);
+      if (statusRows[0]?.code) {
+        setStatusCode(statusRows[0].code);
+      }
       setIsLoading(false);
     };
 
@@ -161,6 +189,7 @@ export default function NewContactPage() {
       facebook_url: facebookUrl.trim() || null,
       instagram_url: instagramUrl.trim() || null,
       source,
+      status_code: statusCode || "target_contact",
       owner_user_id: ownerUserId,
       marketing_email_opt_out: marketingEmailOptOut,
       created_by: ownerUserId,
@@ -178,7 +207,7 @@ export default function NewContactPage() {
         contactError?.message.includes("schema cache");
       setErrorMessage(
         isSchemaMismatch
-          ? "Contacts table is missing new fields. Run supabase/contact_form_patch.sql and retry."
+          ? "Contacts schema is missing manual status fields. Run supabase/contact_statuses_manual_patch.sql and retry."
           : (contactError?.message ?? "Failed to save contact."),
       );
       setIsSaving(false);
@@ -325,6 +354,37 @@ export default function NewContactPage() {
               >
                 {SOURCE_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className={styles.field}>
+              <span className={styles.labelWithHelp}>
+                <span className={styles.label}>Status</span>
+                <span
+                  className={styles.helpIcon}
+                  tabIndex={0}
+                  aria-label="Contact status definitions"
+                >
+                  i
+                  <span className={styles.helpTooltip}>
+                    {statusOptions.map((option) => (
+                      <span key={option.code} className={styles.helpTooltipLine}>
+                        <strong>{option.label}:</strong>{" "}
+                        {option.help_text ?? "No description set."}
+                      </span>
+                    ))}
+                  </span>
+                </span>
+              </span>
+              <select
+                value={statusCode}
+                onChange={(event) => setStatusCode(event.target.value)}
+              >
+                {statusOptions.map((option) => (
+                  <option key={option.code} value={option.code}>
                     {option.label}
                   </option>
                 ))}

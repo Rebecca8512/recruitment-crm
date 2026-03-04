@@ -28,6 +28,12 @@ type ClientOption = {
   name: string;
 };
 
+type ContactStatusOption = {
+  code: string;
+  label: string;
+  help_text: string | null;
+};
+
 type ContactDetails = {
   id: string;
   first_name: string;
@@ -44,6 +50,7 @@ type ContactDetails = {
   facebook_url: string | null;
   instagram_url: string | null;
   source: string | null;
+  status_code: string | null;
   owner_user_id: string | null;
   marketing_email_opt_out: boolean;
   notes: string | null;
@@ -107,6 +114,7 @@ export default function EditContactPage() {
   const [ownerUserId, setOwnerUserId] = useState("");
   const [ownerLabel, setOwnerLabel] = useState("");
   const [clientOptions, setClientOptions] = useState<ClientOption[]>([]);
+  const [statusOptions, setStatusOptions] = useState<ContactStatusOption[]>([]);
 
   const [primaryEmploymentId, setPrimaryEmploymentId] = useState<string | null>(null);
 
@@ -124,6 +132,7 @@ export default function EditContactPage() {
   const [facebookUrl, setFacebookUrl] = useState("");
   const [instagramUrl, setInstagramUrl] = useState("");
   const [source, setSource] = useState<string>("paid_ad");
+  const [statusCode, setStatusCode] = useState("target_contact");
   const [isPrimaryContact, setIsPrimaryContact] = useState(false);
   const [marketingEmailOptOut, setMarketingEmailOptOut] = useState(false);
 
@@ -153,11 +162,12 @@ export default function EditContactPage() {
         { data: contactData, error: contactError },
         { data: clientsData, error: clientsError },
         { data: employmentsData, error: employmentsError },
+        { data: contactStatusesData, error: contactStatusesError },
       ] = await Promise.all([
         supabase
           .from("contacts")
           .select(
-            "id,first_name,last_name,department,email,secondary_email,job_title,work_phone,mobile,phone,linkedin_url,x_url,facebook_url,instagram_url,source,owner_user_id,marketing_email_opt_out,notes",
+            "id,first_name,last_name,department,email,secondary_email,job_title,work_phone,mobile,phone,linkedin_url,x_url,facebook_url,instagram_url,source,status_code,owner_user_id,marketing_email_opt_out,notes",
           )
           .eq("id", contactId)
           .maybeSingle<ContactDetails>(),
@@ -166,6 +176,11 @@ export default function EditContactPage() {
           .from("contact_employments")
           .select("id,client_id,job_title,is_primary,start_date,end_date")
           .eq("contact_id", contactId),
+        supabase
+          .from("contact_statuses")
+          .select("code,label,help_text,sort_order,is_active")
+          .eq("is_active", true)
+          .order("sort_order", { ascending: true }),
       ]);
 
       if (!isMounted) return;
@@ -194,6 +209,12 @@ export default function EditContactPage() {
         return;
       }
 
+      if (contactStatusesError) {
+        setErrorMessage(contactStatusesError.message);
+        setIsLoading(false);
+        return;
+      }
+
       const assignedOwnerId = contactData.owner_user_id ?? user.id;
       const { data: ownerProfile } = await supabase
         .from("profiles")
@@ -213,6 +234,8 @@ export default function EditContactPage() {
       setOwnerUserId(assignedOwnerId);
       setOwnerLabel(owner);
       setClientOptions((clientsData ?? []) as ClientOption[]);
+      const statusRows = (contactStatusesData ?? []) as ContactStatusOption[];
+      setStatusOptions(statusRows);
 
       setPrimaryEmploymentId(selectedEmployment?.id ?? null);
       setClientId(selectedEmployment?.client_id ?? "");
@@ -231,6 +254,7 @@ export default function EditContactPage() {
       setFacebookUrl(contactData.facebook_url ?? "");
       setInstagramUrl(contactData.instagram_url ?? "");
       setSource(contactData.source ?? "paid_ad");
+      setStatusCode(contactData.status_code ?? statusRows[0]?.code ?? "target_contact");
       setMarketingEmailOptOut(contactData.marketing_email_opt_out);
       setIsLoading(false);
     };
@@ -286,6 +310,7 @@ export default function EditContactPage() {
       facebook_url: facebookUrl.trim() || null,
       instagram_url: instagramUrl.trim() || null,
       source,
+      status_code: statusCode || "target_contact",
       owner_user_id: ownerUserId,
       marketing_email_opt_out: marketingEmailOptOut,
     };
@@ -502,6 +527,37 @@ export default function EditContactPage() {
               >
                 {SOURCE_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className={styles.field}>
+              <span className={styles.labelWithHelp}>
+                <span className={styles.label}>Status</span>
+                <span
+                  className={styles.helpIcon}
+                  tabIndex={0}
+                  aria-label="Contact status definitions"
+                >
+                  i
+                  <span className={styles.helpTooltip}>
+                    {statusOptions.map((option) => (
+                      <span key={option.code} className={styles.helpTooltipLine}>
+                        <strong>{option.label}:</strong>{" "}
+                        {option.help_text ?? "No description set."}
+                      </span>
+                    ))}
+                  </span>
+                </span>
+              </span>
+              <select
+                value={statusCode}
+                onChange={(event) => setStatusCode(event.target.value)}
+              >
+                {statusOptions.map((option) => (
+                  <option key={option.code} value={option.code}>
                     {option.label}
                   </option>
                 ))}

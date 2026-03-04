@@ -18,6 +18,7 @@ type ContactRow = {
   mobile: string | null;
   work_phone: string | null;
   phone: string | null;
+  status_code: string | null;
   updated_at: string;
 };
 
@@ -54,11 +55,10 @@ type ApplicationRow = {
   role_id: string;
 };
 
-const CONTACT_STATUS_OPTIONS = [
-  { value: "Assigned", label: "Assigned" },
-  { value: "Previous", label: "Previous" },
-  { value: "Unassigned", label: "Unassigned" },
-] as const;
+type ContactStatusRow = {
+  code: string;
+  label: string;
+};
 
 export default function ContactsPage() {
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
@@ -71,9 +71,12 @@ export default function ContactsPage() {
   const [roles, setRoles] = useState<RoleRow[]>([]);
   const [candidates, setCandidates] = useState<CandidateRow[]>([]);
   const [applications, setApplications] = useState<ApplicationRow[]>([]);
+  const [contactStatuses, setContactStatuses] = useState<ContactStatusRow[]>([]);
   const [selectedSearchOption, setSelectedSearchOption] =
     useState<EntitySearchOption | null>(null);
-  const [selectedStatuses, setSelectedStatuses] = useState<string[]>(["Assigned"]);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([
+    "active_contact",
+  ]);
 
   useEffect(() => {
     let isMounted = true;
@@ -86,10 +89,13 @@ export default function ContactsPage() {
         { data: rolesData, error: rolesError },
         { data: candidatesData, error: candidatesError },
         { data: applicationsData, error: applicationsError },
+        { data: contactStatusesData, error: contactStatusesError },
       ] = await Promise.all([
         supabase
           .from("contacts")
-          .select("id,first_name,last_name,email,mobile,work_phone,phone,updated_at")
+          .select(
+            "id,first_name,last_name,email,mobile,work_phone,phone,status_code,updated_at",
+          )
           .order("first_name", { ascending: true })
           .order("last_name", { ascending: true }),
         supabase
@@ -102,6 +108,11 @@ export default function ContactsPage() {
           .order("updated_at", { ascending: false }),
         supabase.from("candidates").select("id,first_name,last_name"),
         supabase.from("applications").select("candidate_id,role_id"),
+        supabase
+          .from("contact_statuses")
+          .select("code,label")
+          .eq("is_active", true)
+          .order("sort_order", { ascending: true }),
       ]);
 
       if (!isMounted) return;
@@ -142,12 +153,19 @@ export default function ContactsPage() {
         return;
       }
 
+      if (contactStatusesError) {
+        setErrorMessage(contactStatusesError.message);
+        setIsLoading(false);
+        return;
+      }
+
       setContacts((contactsData ?? []) as ContactRow[]);
       setEmployments((employmentsData ?? []) as EmploymentRow[]);
       setClients((clientsData ?? []) as ClientRow[]);
       setRoles((rolesData ?? []) as RoleRow[]);
       setCandidates((candidatesData ?? []) as CandidateRow[]);
       setApplications((applicationsData ?? []) as ApplicationRow[]);
+      setContactStatuses((contactStatusesData ?? []) as ContactStatusRow[]);
       setIsLoading(false);
     };
 
@@ -255,24 +273,12 @@ export default function ContactsPage() {
     return output;
   }, [clientNameById, employmentsByContact]);
 
-  const statusByContact = useMemo(() => {
-    const output: Record<string, string> = {};
-
-    for (const contact of contacts) {
-      const rows = employmentsByContact[contact.id] ?? [];
-      const linkedRows = rows.filter((row) => Boolean(row.client_id));
-
-      if (linkedRows.length === 0) {
-        output[contact.id] = "Unassigned";
-        continue;
-      }
-
-      const hasActiveLink = linkedRows.some((row) => !row.end_date);
-      output[contact.id] = hasActiveLink ? "Assigned" : "Previous";
-    }
-
-    return output;
-  }, [contacts, employmentsByContact]);
+  const statusLabelByCode = useMemo(() => {
+    return contactStatuses.reduce<Record<string, string>>((acc, status) => {
+      acc[status.code] = status.label;
+      return acc;
+    }, {});
+  }, [contactStatuses]);
 
   const lastActivityMap = useMemo(() => {
     const output: Record<string, string> = {};
@@ -400,7 +406,7 @@ export default function ContactsPage() {
 
   const filteredContacts = useMemo(() => {
     const statusFiltered = contacts.filter((contact) =>
-      selectedStatuses.includes(statusByContact[contact.id] ?? "Unassigned"),
+      selectedStatuses.includes(contact.status_code ?? "target_contact"),
     );
 
     if (!selectedSearchOption) return statusFiltered;
@@ -433,7 +439,6 @@ export default function ContactsPage() {
     contacts,
     selectedStatuses,
     selectedSearchOption,
-    statusByContact,
   ]);
 
   return (
@@ -453,13 +458,13 @@ export default function ContactsPage() {
             placeholder="Search"
           />
           <StatusFilter
-            options={CONTACT_STATUS_OPTIONS.map((option) => ({
-              value: option.value,
+            options={contactStatuses.map((option) => ({
+              value: option.code,
               label: option.label,
             }))}
             selectedValues={selectedStatuses}
             onChange={setSelectedStatuses}
-            onReset={() => setSelectedStatuses(["Assigned"])}
+            onReset={() => setSelectedStatuses(["active_contact"])}
           />
         </div>
       </header>
@@ -509,7 +514,9 @@ export default function ContactsPage() {
                       </td>
                       <td>
                         <span className={styles.statusBadge}>
-                          {statusByContact[contact.id] ?? "Unassigned"}
+                          {statusLabelByCode[contact.status_code ?? ""] ??
+                            contact.status_code ??
+                            "Target Contact"}
                         </span>
                       </td>
                       <td>
