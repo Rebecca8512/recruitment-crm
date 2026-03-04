@@ -686,7 +686,7 @@ create table if not exists public.tasks (
   title text not null,
   task_type text not null default 'general',
   task_status text not null default 'todo',
-  due_at timestamptz not null,
+  due_at timestamptz,
   primary_client_id uuid references public.clients(id) on delete set null,
   primary_contact_id uuid references public.contacts(id) on delete set null,
   primary_role_id uuid references public.roles(id) on delete set null,

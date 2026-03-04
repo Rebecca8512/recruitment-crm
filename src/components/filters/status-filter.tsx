@@ -13,6 +13,7 @@ type StatusFilterProps = {
   selectedValues: string[];
   onChange: (values: string[]) => void;
   onReset: () => void;
+  triggerLabel?: string;
 };
 
 export function StatusFilter({
@@ -20,6 +21,7 @@ export function StatusFilter({
   selectedValues,
   onChange,
   onReset,
+  triggerLabel = "Filter",
 }: StatusFilterProps) {
   const [isOpen, setIsOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -46,7 +48,7 @@ export function StatusFilter({
         className={`${styles.trigger} ${isOpen ? styles.triggerOpen : ""}`}
         onClick={() => setIsOpen((current) => !current)}
       >
-        <span>Filter</span>
+        <span>{triggerLabel}</span>
         <span className={styles.triggerCount}>{selectedValues.length}</span>
       </button>
 
