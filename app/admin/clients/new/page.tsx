@@ -27,6 +27,11 @@ type UserProfile = {
   email: string;
 };
 
+type ClientStatusOption = {
+  code: string;
+  label: string;
+};
+
 export default function NewClientPage() {
   const router = useRouter();
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
@@ -40,10 +45,12 @@ export default function NewClientPage() {
   const [accountManagerLabel, setAccountManagerLabel] = useState("");
 
   const [clientOptions, setClientOptions] = useState<ClientSummary[]>([]);
+  const [statusOptions, setStatusOptions] = useState<ClientStatusOption[]>([]);
   const [industryOptions, setIndustryOptions] = useState<string[]>([]);
 
   const [clientName, setClientName] = useState("");
   const [contactNumber, setContactNumber] = useState("");
+  const [statusCode, setStatusCode] = useState("prospect");
   const [industry, setIndustry] = useState("");
   const [about, setAbout] = useState("");
   const [source, setSource] = useState<string>("referral");
@@ -87,13 +94,29 @@ export default function NewClientPage() {
         profile?.full_name?.trim() || profile?.email || user.email || "Current user";
       setAccountManagerLabel(profileLabel);
 
-      const { data: clientsData, error: clientsError } = await supabase
-        .from("clients")
-        .select("id,name,industry")
-        .order("name", { ascending: true });
+      const [
+        { data: clientsData, error: clientsError },
+        { data: statusesData, error: statusesError },
+      ] = await Promise.all([
+        supabase
+          .from("clients")
+          .select("id,name,industry")
+          .order("name", { ascending: true }),
+        supabase
+          .from("client_statuses")
+          .select("code,label")
+          .eq("is_active", true)
+          .order("sort_order", { ascending: true }),
+      ]);
 
       if (clientsError) {
         setErrorMessage(clientsError.message);
+        setIsLoading(false);
+        return;
+      }
+
+      if (statusesError) {
+        setErrorMessage(statusesError.message);
         setIsLoading(false);
         return;
       }
@@ -108,6 +131,13 @@ export default function NewClientPage() {
       ).sort((a, b) => a.localeCompare(b));
 
       setClientOptions(clientRows);
+      const loadedStatuses = (statusesData ?? []) as ClientStatusOption[];
+      setStatusOptions(loadedStatuses);
+      if (loadedStatuses.some((status) => status.code === "prospect")) {
+        setStatusCode("prospect");
+      } else if (loadedStatuses[0]?.code) {
+        setStatusCode(loadedStatuses[0].code);
+      }
       setIndustryOptions(industries);
       setIsLoading(false);
     };
@@ -144,6 +174,7 @@ export default function NewClientPage() {
     const payload = {
       name: clientName.trim(),
       contact_number: contactNumber.trim() || null,
+      status_code: statusCode || "prospect",
       account_manager_id: accountManagerId,
       industry: industry.trim() || null,
       about: about.trim() || null,
@@ -233,6 +264,24 @@ export default function NewClientPage() {
             <label className={styles.field}>
               <span className={styles.label}>Account Manager</span>
               <input type="text" value={accountManagerLabel} readOnly />
+            </label>
+
+            <label className={styles.field}>
+              <span className={styles.label}>Status</span>
+              <select
+                value={statusCode}
+                onChange={(event) => setStatusCode(event.target.value)}
+              >
+                {statusOptions.length > 0 ? (
+                  statusOptions.map((status) => (
+                    <option key={status.code} value={status.code}>
+                      {status.label}
+                    </option>
+                  ))
+                ) : (
+                  <option value="prospect">Prospect</option>
+                )}
+              </select>
             </label>
 
             <label className={styles.field}>

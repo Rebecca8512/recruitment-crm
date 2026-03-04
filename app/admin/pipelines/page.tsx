@@ -133,6 +133,11 @@ type RoleApplicationCard = {
 
 type AgeFilterValue = "any" | "7" | "14" | "30";
 
+type DragPayload =
+  | { kind: "bd"; id: string }
+  | { kind: "rt"; id: string }
+  | { kind: "app"; id: string };
+
 const VIEW_OPTIONS: { value: PipelineView; label: string }[] = [
   { value: "business-development", label: "Business Development" },
   { value: "vacancy-fill", label: "Role Tracker" },
@@ -267,6 +272,9 @@ const AGE_FILTER_OPTIONS: { value: AgeFilterValue; label: string }[] = [
   { value: "30", label: "30+ Days" },
 ];
 
+const BD_STAGE_OVERRIDES_KEY = "crm:bd-stage-overrides:v1";
+const RT_STAGE_OVERRIDES_KEY = "crm:rt-stage-overrides:v1";
+
 function resolveView(view: string | null): PipelineView {
   if (view === "vacancy-fill") return "vacancy-fill";
   return "business-development";
@@ -304,6 +312,23 @@ function mapClientStatusToBDStage(statusCode: string | null): BDStageId {
   }
 }
 
+function mapBDStageToClientStatus(stageId: BDStageId): string {
+  switch (stageId) {
+    case "identifying":
+    case "outreach":
+      return "prospect";
+    case "discovery":
+    case "terms_sent":
+      return "warm_lead";
+    case "closed_won":
+      return "active";
+    case "closed_lost":
+      return "closed";
+    default:
+      return "prospect";
+  }
+}
+
 function mapRoleToRTStage(roleStatusCode: string, appStages: AppStageId[]): RTStageId {
   if (roleStatusCode === "pending") return "intake";
 
@@ -323,6 +348,26 @@ function mapRoleToRTStage(roleStatusCode: string, appStages: AppStageId[]): RTSt
   }
 
   return "sourcing";
+}
+
+function mapRTStageToRoleStatus(stageId: RTStageId): string {
+  switch (stageId) {
+    case "intake":
+      return "pending";
+    case "sourcing":
+    case "shortlisting":
+    case "interviews":
+    case "offer_pending":
+      return "active";
+    case "filled_pending_rebate":
+      return "filled";
+    case "filled_won":
+      return "won";
+    case "closed_lost":
+      return "lost";
+    default:
+      return "pending";
+  }
 }
 
 function toAgeInDays(updatedAt: string) {
@@ -371,6 +416,17 @@ export default function PipelinesPage() {
   const [collapsedBDStageIds, setCollapsedBDStageIds] = useState<Set<BDStageId>>(
     new Set(),
   );
+  const [bdStageOverrides, setBdStageOverrides] = useState<
+    Record<string, BDStageId>
+  >(() => {
+    if (typeof window === "undefined") return {};
+    try {
+      const raw = window.localStorage.getItem(BD_STAGE_OVERRIDES_KEY);
+      return raw ? (JSON.parse(raw) as Record<string, BDStageId>) : {};
+    } catch {
+      return {};
+    }
+  });
 
   const [selectedRTSearch, setSelectedRTSearch] =
     useState<EntitySearchOption | null>(null);
@@ -381,6 +437,17 @@ export default function PipelinesPage() {
   const [collapsedRTStageIds, setCollapsedRTStageIds] = useState<Set<RTStageId>>(
     new Set(),
   );
+  const [rtStageOverrides, setRtStageOverrides] = useState<
+    Record<string, RTStageId>
+  >(() => {
+    if (typeof window === "undefined") return {};
+    try {
+      const raw = window.localStorage.getItem(RT_STAGE_OVERRIDES_KEY);
+      return raw ? (JSON.parse(raw) as Record<string, RTStageId>) : {};
+    } catch {
+      return {};
+    }
+  });
 
   const [selectedAppSearch, setSelectedAppSearch] =
     useState<EntitySearchOption | null>(null);
@@ -391,6 +458,21 @@ export default function PipelinesPage() {
   const [collapsedAppStageIds, setCollapsedAppStageIds] = useState<Set<AppStageId>>(
     new Set(),
   );
+  const [dragPayload, setDragPayload] = useState<DragPayload | null>(null);
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      BD_STAGE_OVERRIDES_KEY,
+      JSON.stringify(bdStageOverrides),
+    );
+  }, [bdStageOverrides]);
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      RT_STAGE_OVERRIDES_KEY,
+      JSON.stringify(rtStageOverrides),
+    );
+  }, [rtStageOverrides]);
 
   useEffect(() => {
     let isMounted = true;
@@ -547,10 +629,11 @@ export default function PipelinesPage() {
       statusLabel: client.status_code
         ? (clientStatusLabelByCode[client.status_code] ?? client.status_code)
         : "Unassigned",
-      stageId: mapClientStatusToBDStage(client.status_code),
+      stageId:
+        bdStageOverrides[client.id] ?? mapClientStatusToBDStage(client.status_code),
       updatedAt: client.updated_at,
     }));
-  }, [clientStatusLabelByCode, clients]);
+  }, [bdStageOverrides, clientStatusLabelByCode, clients]);
 
   const rtCards = useMemo<RTPipelineCard[]>(() => {
     return roles.map((role) => {
@@ -570,14 +653,14 @@ export default function PipelinesPage() {
         clientId: role.client_id,
         clientName: role.client_id ? (clientNameById[role.client_id] ?? "-") : "-",
         roleStatusLabel: roleStatusLabelByCode[role.status_code] ?? role.status_code,
-        stageId,
+        stageId: rtStageOverrides[role.id] ?? stageId,
         updatedAt: new Date(Math.max(roleUpdated, newestAppUpdate)).toISOString(),
         candidateCount: roleApplications.length,
         interviewCount: appStages.filter((stage) => stage === "interview").length,
         offerCount: appStages.filter((stage) => stage === "offer").length,
       };
     });
-  }, [applicationsByRoleId, clientNameById, roleStatusLabelByCode, roles]);
+  }, [applicationsByRoleId, clientNameById, roleStatusLabelByCode, roles, rtStageOverrides]);
 
   const selectedRole = useMemo(() => {
     if (!selectedRoleId) return null;
@@ -822,6 +905,105 @@ export default function PipelinesPage() {
     });
   };
 
+  const onDragStart = (payload: DragPayload) => {
+    setDragPayload(payload);
+  };
+
+  const onDragEnd = () => {
+    setDragPayload(null);
+  };
+
+  const moveBDCard = async (clientId: string, stageId: BDStageId) => {
+    setErrorMessage("");
+    const nextStatus = mapBDStageToClientStatus(stageId);
+    setBdStageOverrides((current) => ({ ...current, [clientId]: stageId }));
+    setClients((current) =>
+      current.map((client) =>
+        client.id === clientId
+          ? {
+              ...client,
+              status_code: nextStatus,
+              updated_at: new Date().toISOString(),
+            }
+          : client,
+      ),
+    );
+
+    const { error } = await supabase
+      .from("clients")
+      .update({ status_code: nextStatus })
+      .eq("id", clientId);
+
+    if (error) {
+      setErrorMessage(error.message);
+    }
+  };
+
+  const moveRTCard = async (roleId: string, stageId: RTStageId) => {
+    setErrorMessage("");
+    const nextStatus = mapRTStageToRoleStatus(stageId);
+    setRtStageOverrides((current) => ({ ...current, [roleId]: stageId }));
+    setRoles((current) =>
+      current.map((role) =>
+        role.id === roleId
+          ? {
+              ...role,
+              status_code: nextStatus,
+              updated_at: new Date().toISOString(),
+            }
+          : role,
+      ),
+    );
+
+    const { error } = await supabase
+      .from("roles")
+      .update({ status_code: nextStatus })
+      .eq("id", roleId);
+
+    if (error) {
+      setErrorMessage(error.message);
+    }
+  };
+
+  const moveRoleApplicationCard = async (applicationId: string, stageId: AppStageId) => {
+    setErrorMessage("");
+    setApplications((current) =>
+      current.map((row) =>
+        row.id === applicationId
+          ? {
+              ...row,
+              stage: stageId,
+              updated_at: new Date().toISOString(),
+            }
+          : row,
+      ),
+    );
+
+    const { error } = await supabase
+      .from("applications")
+      .update({ stage: stageId })
+      .eq("id", applicationId);
+
+    if (error) {
+      setErrorMessage(error.message);
+    }
+  };
+
+  const onDropToBDStage = (stageId: BDStageId) => {
+    if (!dragPayload || dragPayload.kind !== "bd") return;
+    void moveBDCard(dragPayload.id, stageId);
+  };
+
+  const onDropToRTStage = (stageId: RTStageId) => {
+    if (!dragPayload || dragPayload.kind !== "rt") return;
+    void moveRTCard(dragPayload.id, stageId);
+  };
+
+  const onDropToAppStage = (stageId: AppStageId) => {
+    if (!dragPayload || dragPayload.kind !== "app") return;
+    void moveRoleApplicationCard(dragPayload.id, stageId);
+  };
+
   return (
     <main className={styles.page}>
       <header className={styles.header}>
@@ -915,6 +1097,8 @@ export default function PipelinesPage() {
                       <article
                         key={stage.id}
                         className={`${styles.stageColumn} ${isCollapsed ? styles.stageColumnCollapsed : ""}`}
+                        onDragOver={(event) => event.preventDefault()}
+                        onDrop={() => onDropToBDStage(stage.id)}
                       >
                         <header className={styles.stageHeader}>
                           <div
@@ -940,6 +1124,11 @@ export default function PipelinesPage() {
                                   key={card.id}
                                   href={`/admin/clients/${card.clientId}`}
                                   className={styles.pipelineCard}
+                                  draggable
+                                  onDragStart={() =>
+                                    onDragStart({ kind: "bd", id: card.clientId })
+                                  }
+                                  onDragEnd={onDragEnd}
                                 >
                                   <p className={styles.cardTitleText}>{card.title}</p>
                                   <dl className={styles.cardMeta}>
@@ -1041,6 +1230,8 @@ export default function PipelinesPage() {
                           <article
                             key={stage.id}
                             className={`${styles.stageColumn} ${isCollapsed ? styles.stageColumnCollapsed : ""}`}
+                            onDragOver={(event) => event.preventDefault()}
+                            onDrop={() => onDropToRTStage(stage.id)}
                           >
                             <header className={styles.stageHeader}>
                               <div
@@ -1066,6 +1257,11 @@ export default function PipelinesPage() {
                                       key={card.id}
                                       href={`/admin/pipelines?view=vacancy-fill&role=${card.roleId}`}
                                       className={styles.pipelineCard}
+                                      draggable
+                                      onDragStart={() =>
+                                        onDragStart({ kind: "rt", id: card.roleId })
+                                      }
+                                      onDragEnd={onDragEnd}
                                     >
                                       <p className={styles.cardTitleText}>{card.title}</p>
                                       <p className={styles.cardSubtleText}>{card.clientName}</p>
@@ -1195,6 +1391,8 @@ export default function PipelinesPage() {
                           <article
                             key={stage.id}
                             className={`${styles.stageColumn} ${isCollapsed ? styles.stageColumnCollapsed : ""}`}
+                            onDragOver={(event) => event.preventDefault()}
+                            onDrop={() => onDropToAppStage(stage.id)}
                           >
                             <header className={styles.stageHeader}>
                               <div
@@ -1220,6 +1418,14 @@ export default function PipelinesPage() {
                                       key={card.id}
                                       href={`/admin/candidates/${card.candidateId}`}
                                       className={styles.pipelineCard}
+                                      draggable
+                                      onDragStart={() =>
+                                        onDragStart({
+                                          kind: "app",
+                                          id: card.applicationId,
+                                        })
+                                      }
+                                      onDragEnd={onDragEnd}
                                     >
                                       <p className={styles.cardTitleText}>{card.candidateName}</p>
                                       <dl className={styles.cardMeta}>
